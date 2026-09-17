@@ -1,8 +1,38 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Autonexus — studio design tokens & primitives
+   (see AGENTS.md "PRIMORDIAL RULE — Studio-grade design")
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Cinematic ink canvas */
+  --ink-900: #05070e;
+  --ink-800: #080b16;
+  --ink-700: #0b1120;
+  --panel: #0d1424;
+  --panel-2: #111a2e;
+  --line: rgba(148, 173, 210, 0.1);
+  --line-strong: rgba(148, 173, 210, 0.18);
+
+  --text: #e8eef8;
+  --text-muted: #93a1bd;
+  --text-faint: #64738f;
+
+  /* Studio accents — cyan → violet duotone */
+  --accent: #38bdf8;
+  --accent-2: #8b5cf6;
+  --accent-3: #22d3ee;
+  --glow: rgba(56, 189, 248, 0.35);
+
+  --background: var(--ink-900);
+  --foreground: var(--text);
+
+  /* Motion tokens */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
 }
 
 @theme inline {
@@ -12,15 +42,190 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* Cinematic depth: two soft accent glows + subtle vignette */
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(52rem 38rem at 100% 0%, rgba(139, 92, 246, 0.12), transparent 55%),
+    radial-gradient(80rem 60rem at 50% 120%, rgba(34, 211, 238, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* ---------- Surfaces ---------- */
+.studio-surface {
+  position: relative;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, var(--panel), var(--ink-800));
+  border: 1px solid var(--line);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+}
+
+/* Interactive surfaces lift + glow toward the accent on hover */
+.studio-interactive {
+  transition:
+    transform var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+  will-change: transform;
+}
+.studio-interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 26px 50px -26px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(56, 189, 248, 0.18),
+    0 18px 60px -30px var(--glow);
+}
+
+/* Thin gradient hairline that reveals on hover (top edge accent) */
+.studio-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.studio-interactive:hover .studio-edge::before,
+.studio-edge:hover::before {
+  opacity: 0.9;
+}
+
+/* ---------- Text ---------- */
+.text-gradient {
+  background: linear-gradient(92deg, var(--text) 10%, var(--accent) 55%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Accent icon tile ---------- */
+.studio-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.16), rgba(139, 92, 246, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  color: var(--accent);
+  box-shadow: 0 10px 30px -18px var(--glow);
+}
+
+/* ---------- Glass form controls ---------- */
+.studio-input {
+  width: 100%;
+  border-radius: 12px;
+  background: rgba(148, 173, 210, 0.05);
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.8rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
+}
+.studio-input::placeholder {
+  color: var(--text-faint);
+}
+.studio-input:hover {
+  border-color: var(--line-strong);
+}
+.studio-input:focus {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(56, 189, 248, 0.06);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+/* ---------- Buttons ---------- */
+.btn-gradient {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: linear-gradient(180deg, #38bdf8, #0284c7);
+  padding: 0.6rem 1.15rem;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 10px 30px -12px var(--glow);
+  transition: filter var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+}
+.btn-gradient:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(148, 173, 210, 0.05);
+  padding: 0.5rem 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
+}
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: rgba(148, 173, 210, 0.09);
+}
+
+/* ---------- Motion ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise var(--dur-slow) var(--ease-out) both;
+}
+
+/* ---------- Custom scrollbar ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 173, 210, 0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 173, 210, 0.22);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.4);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .studio-interactive:hover {
+    transform: none;
+  }
 }

@@ -1,0 +1,176 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeftIcon } from "@/components/icons";
+import { requireSession } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { isDemoMode, demoPurchases } from "@/lib/demo";
+import { can, hasModule } from "@/lib/types";
+import { money } from "@/lib/currency";
+import { ModuleUpsell } from "@/components/module-upsell";
+import { approvePurchase } from "../actions";
+import { AddVendorPayment } from "./add-vendor-payment";
+
+interface Line { description: string; nominal_code: string | null; qty: number; net: number; vat: number; gross: number }
+interface Pay { amount: number; method: string | null; paid_on: string | null }
+interface POView {
+  id: string; po_no: string; status: string; vat_scheme: string; inv_ref: string | null;
+  vendor: string; vendorContact: string; car: string; reg: string | null;
+  lines: Line[]; payments: Pay[];
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  to_be_paid: "border-amber-400/40 bg-amber-500/10 text-amber-200",
+  approved: "border-sky-400/40 bg-sky-400/10 text-sky-300",
+  paid: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  cancelled: "border-rose-400/30 bg-rose-500/10 text-rose-300",
+};
+const STATUS_LABEL: Record<string, string> = { to_be_paid: "To be paid", approved: "Approved", paid: "Paid", cancelled: "Cancelled" };
+
+export default async function PurchaseDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await requireSession();
+  if (!hasModule(session.dealer.modules, "sales")) return <ModuleUpsell product="Sales CRM" />;
+  if (!can.viewFinancials(session.role)) return <p className="text-sm text-slate-400">No access.</p>;
+  const canApprove = can.manageMembers(session.role);
+
+  let po: POView | null = null;
+
+  if (isDemoMode()) {
+    const x = demoPurchases.find((p) => p.id === id);
+    if (!x) notFound();
+    po = {
+      id: x.id, po_no: x.po_no, status: x.status, vat_scheme: x.vat_scheme, inv_ref: x.inv_ref,
+      vendor: x.vendor.name, vendorContact: [x.vendor.phone, x.vendor.email].filter(Boolean).join(" · "),
+      car: x.car, reg: x.reg,
+      lines: x.lines.map((l) => ({ description: l.description, nominal_code: l.nominal_code, qty: l.qty, net: l.net, vat: l.vat, gross: l.gross })),
+      payments: x.payments,
+    };
+  } else {
+    const supabase = await createClient();
+    const { data: row } = await supabase.from("purchase_orders").select("id, po_no, status, vat_scheme, inv_ref, vendor_id, vehicle_id").eq("dealer_id", session.dealer.id).eq("id", id).maybeSingle();
+    if (!row) notFound();
+    const [{ data: lines }, { data: pays }, { data: vendor }] = await Promise.all([
+      supabase.from("po_lines").select("description, nominal_code, qty, net, vat, gross").eq("dealer_id", session.dealer.id).eq("po_id", id).order("created_at"),
+      supabase.from("po_payments").select("amount, method, paid_on").eq("dealer_id", session.dealer.id).eq("po_id", id).order("created_at"),
+      row.vendor_id ? supabase.from("customers").select("name, phone, email").eq("id", row.vendor_id).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    let car = "—"; let reg: string | null = null;
+    if (row.vehicle_id) {
+      const { data: v } = await supabase.from("vehicles").select("make, model, year, registration").eq("id", row.vehicle_id).maybeSingle();
+      if (v) { car = `${v.year} ${v.make} ${v.model}`; reg = v.registration; }
+    }
+    po = {
+      id: row.id, po_no: row.po_no, status: row.status, vat_scheme: row.vat_scheme, inv_ref: row.inv_ref,
+      vendor: vendor?.name ?? "—", vendorContact: [vendor?.phone, vendor?.email].filter(Boolean).join(" · "),
+      car, reg, lines: (lines ?? []) as Line[], payments: (pays ?? []) as Pay[],
+    };
+  }
+
+  const total = po.lines.reduce((a, l) => a + Number(l.gross), 0);
+  const paid = po.payments.reduce((a, p) => a + Number(p.amount), 0);
+  const outstanding = total - paid;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href="/business/purchases" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white"><ArrowLeftIcon size={14} /> Purchases</Link>
+        <h1 className="font-mono text-xl font-semibold text-slate-100">{po.po_no}</h1>
+        <span className={`rounded-full border px-2.5 py-0.5 text-xs ${STATUS_STYLE[po.status]}`}>{STATUS_LABEL[po.status] ?? po.status}</span>
+        <div className="ml-auto flex flex-wrap gap-2">
+          {po.status === "to_be_paid" && canApprove && (
+            <form action={approvePurchase}>
+              <input type="hidden" name="id" value={po.id} />
+              <button type="submit" className="btn-gradient text-xs">Approve</button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Kpi label="Total" value={money(total, "EUR")} />
+        <Kpi label="Paid" value={money(paid, "EUR")} accent="text-emerald-300" />
+        <Kpi label="Outstanding" value={money(outstanding, "EUR")} accent={outstanding > 0 ? "text-amber-300" : "text-emerald-300"} />
+        <Kpi label="VAT" value={po.vat_scheme === "none" ? "No VAT" : po.vat_scheme === "margin" ? "Margin" : "23%"} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <section className="studio-surface p-4">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vendor</h2>
+              <p className="mt-1 text-slate-100">{po.vendor}</p>
+              {po.vendorContact && <p className="text-sm text-slate-500">{po.vendorContact}</p>}
+              {po.inv_ref && <p className="mt-2 text-[11px] text-slate-500">Supplier ref: <span className="text-slate-300">{po.inv_ref}</span></p>}
+            </section>
+            <section className="studio-surface p-4">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vehicle</h2>
+              <p className="mt-1 text-slate-100">{po.car}</p>
+              {po.reg && <p className="font-mono text-sm text-slate-500">{po.reg}</p>}
+            </section>
+          </div>
+
+          <section className="studio-surface overflow-x-auto p-0">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500">
+                  <th className="px-3 py-2.5">Description</th>
+                  <th className="px-3 py-2.5">Nom</th>
+                  <th className="px-3 py-2.5 text-right">Net</th>
+                  <th className="px-3 py-2.5 text-right">VAT</th>
+                  <th className="px-3 py-2.5 text-right">Gross</th>
+                </tr>
+              </thead>
+              <tbody>
+                {po.lines.map((l, i) => (
+                  <tr key={i} className="border-t border-white/5">
+                    <td className="px-3 py-2 text-slate-200">{l.description}</td>
+                    <td className="px-3 py-2 font-mono text-slate-500">{l.nominal_code ?? "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-slate-300">{money(Number(l.net), "EUR")}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-slate-300">{money(Number(l.vat), "EUR")}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-slate-200">{money(Number(l.gross), "EUR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="studio-surface p-4">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vendor payments</h2>
+            <div className="mt-2 space-y-1.5">
+              {po.payments.length === 0 && <p className="text-sm text-slate-500">No payments yet.</p>}
+              {po.payments.map((p, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] p-2.5 text-sm">
+                  <span className="text-slate-300">{p.method ?? "payment"}{p.paid_on ? ` · ${p.paid_on}` : ""}</span>
+                  <span className="tabular-nums text-slate-200">{money(Number(p.amount), "EUR")}</span>
+                </div>
+              ))}
+            </div>
+            {po.status === "to_be_paid" ? (
+              <p className="mt-3 text-xs text-amber-300/80">Approve this PO before recording a payment.</p>
+            ) : po.status !== "cancelled" ? (
+              <AddVendorPayment poId={po.id} />
+            ) : null}
+          </section>
+        </div>
+
+        <section className="studio-surface p-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Totals</h2>
+          <dl className="mt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between"><dt className="text-slate-400">Total</dt><dd className="tabular-nums text-slate-200">{money(total, "EUR")}</dd></div>
+            <div className="flex justify-between"><dt className="text-slate-400">Paid</dt><dd className="tabular-nums text-slate-200">{money(paid, "EUR")}</dd></div>
+            <div className="flex justify-between border-t border-white/10 pt-1.5"><dt className="font-medium text-slate-300">Outstanding</dt><dd className="text-base font-semibold tabular-nums text-slate-100">{money(outstanding, "EUR")}</dd></div>
+          </dl>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function Kpi({ label, value, accent = "text-slate-100" }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`mt-0.5 text-base font-semibold tabular-nums ${accent}`}>{value}</p>
+    </div>
+  );
+}
