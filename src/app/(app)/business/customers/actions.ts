@@ -33,7 +33,7 @@ export interface CustomerMatch {
 export async function searchCustomers(query: string): Promise<CustomerMatch[]> {
   const session = await requireSession();
   if (!can.manageDeals(session.role)) return [];
-  const q = query.trim();
+  const q = query.trim().slice(0,120).replace(/[\\%_(),"]/g," ").trim();
   if (q.length < 2) return [];
 
   if (isDemoMode()) {

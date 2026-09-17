@@ -11,10 +11,9 @@ export interface DealerModules {
 
 export const ALL_MODULES: DealerModules = { sales: true, marketing: true, website: true };
 
-/** Fail-open until a dealer has entitlements provisioned (older rows have no modules). */
+/** Provisioned products only; missing entitlements must not grant access. */
 export function hasModule(modules: DealerModules | null | undefined, key: keyof DealerModules): boolean {
-  if (!modules) return true;
-  return modules[key] !== false;
+  return modules?.[key] === true;
 }
 
 export interface Dealer {

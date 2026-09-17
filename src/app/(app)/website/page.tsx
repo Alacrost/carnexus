@@ -5,14 +5,6 @@ import { isDemoMode, demoWebsiteSettings, demoVehicles } from "@/lib/demo";
 import { can, hasModule } from "@/lib/types";
 import { ModuleUpsell } from "@/components/module-upsell";
 import { WebsiteForm } from "./website-form";
-import { syncFromDoneDeal } from "./actions";
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function fmt(iso: string | null) {
-  if (!iso) return "never";
-  const d = new Date(iso);
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`;
-}
 
 export default async function WebsitePage() {
   const session = await requireSession();
@@ -44,7 +36,7 @@ export default async function WebsitePage() {
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/80">Website</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gradient">Dealer Website</h1>
-          <p className="mt-1 text-sm text-slate-400">A public car-listing site, served live from your stock and refreshed hourly.</p>
+          <p className="mt-1 text-sm text-slate-400">Your public car-listing site, powered by the stock recorded in Autonexus.</p>
         </div>
         <Link href={siteUrl} target="_blank" className="btn-gradient text-sm">View public site ↗</Link>
       </div>
@@ -53,16 +45,16 @@ export default async function WebsitePage() {
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-slate-500">Status</p><p className={`mt-0.5 text-base font-semibold ${values.enabled ? "text-emerald-300" : "text-slate-400"}`}>{values.enabled ? "Published" : "Draft"}</p></div>
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-slate-500">Cars live</p><p className="mt-0.5 text-base font-semibold text-slate-100">{carCount}</p></div>
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-slate-500">Public URL</p><p className="mt-0.5 truncate text-sm font-medium text-sky-300">{siteUrl}</p></div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-slate-500">Last synced</p><p className="mt-0.5 text-sm font-medium text-slate-200">{fmt(values.last_synced_at)}</p></div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-slate-500">Stock source</p><p className="mt-0.5 text-sm font-medium text-slate-200">Autonexus inventory</p></div>
       </div>
 
       <section className="studio-surface p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-medium text-slate-100">DoneDeal sync</h2>
-            <p className="mt-1 text-sm text-slate-400">Your stock is served live and revalidated hourly. Pull the latest from DoneDeal on demand.</p>
+            <p className="mt-1 text-sm text-slate-400">Planned integration, subject to DoneDeal API or feed access. Saving a seller URL does not import stock.</p>
           </div>
-          <form action={syncFromDoneDeal}><button type="submit" className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-slate-200 hover:border-white/25">Sync now</button></form>
+          <span className="text-xs text-amber-300">Not connected</span>
         </div>
       </section>
 

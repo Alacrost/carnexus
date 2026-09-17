@@ -5,7 +5,8 @@ import { secretStorageEnabled } from "@/lib/crypto";
 import { can, hasModule } from "@/lib/types";
 import { CURRENCIES } from "@/lib/currency";
 import { IntegrationsForm, type IntegrationsValues } from "./integrations-form";
-import { setDealerCurrency, setDealerModules } from "./actions";
+import { setDealerCurrency } from "./actions";
+import Link from "next/link";
 
 export default async function SettingsPage() {
   const session = await requireSession();
@@ -85,29 +86,28 @@ export default async function SettingsPage() {
         {session.role === "owner" && (
           <section className="studio-surface p-5">
             <h2 className="font-medium text-slate-100">Products</h2>
-            <p className="mt-2 text-sm text-slate-400">Each product is billed separately. Turn a product on or off for this dealership.</p>
-            <form action={setDealerModules} className="mt-3 space-y-2">
+            <p className="mt-2 text-sm text-slate-400">Three independently available products. Contact the platform team to change your subscription.</p>
+            <div className="mt-3 space-y-2">
               {([
                 ["sales", "Sales CRM", "Stock, deals, purchases, invoicing & reports"],
-                ["marketing", "Marketing Studio", "AI photos, descriptions, social & campaigns"],
+                ["marketing", "Marketing Support", "DoneDeal ads, promotions and reviewed terms"],
                 ["website", "Dealer Website", "Public car-listing site synced from your stock"],
               ] as const).map(([key, label, desc]) => (
                 <label key={key} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                  <input type="checkbox" name={key} defaultChecked={hasModule(session.dealer.modules, key)} className="mt-0.5 h-4 w-4" />
+                  <span className="text-xs text-sky-300">{hasModule(session.dealer.modules, key) ? "Active" : "Not active"}</span>
                   <span>
                     <span className="block text-sm text-slate-100">{label}</span>
                     <span className="block text-xs text-slate-500">{desc}</span>
                   </span>
                 </label>
               ))}
-              <button type="submit" className="btn-gradient">Save products</button>
-              {isDemoMode() && <p className="text-xs text-slate-500">Demo mode — changes are not saved.</p>}
-            </form>
+            </div>
           </section>
         )}
 
         <section className="studio-surface p-5">
           <h2 className="font-medium text-slate-100">Team</h2>
+          {session.role === "owner" && <Link href="/leads/team" className="mt-3 inline-block text-sm text-sky-300">CRM profiles & assignments →</Link>}
           <p className="mt-2 text-sm text-slate-400">
             {can.manageMembers(session.role)
               ? "Invite salespeople and admins. The invitation manager UI ships in Stage 1 — invitations already work via the secure API."

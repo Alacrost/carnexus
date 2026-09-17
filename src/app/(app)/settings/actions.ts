@@ -83,18 +83,3 @@ export async function setDealerCurrency(formData: FormData): Promise<void> {
   await supabase.from("dealers").update({ currency }).eq("id", session.dealer.id);
   revalidatePath("/settings");
 }
-
-// Toggle which products the dealer subscribes to (owner only). Separates Sales CRM / Marketing / Website.
-export async function setDealerModules(formData: FormData): Promise<void> {
-  const session = await requireSession();
-  if (session.role !== "owner" || isDemoMode()) return;
-  const modules = {
-    sales: formData.get("sales") === "on",
-    marketing: formData.get("marketing") === "on",
-    website: formData.get("website") === "on",
-  };
-  const supabase = await createClient();
-  await supabase.from("dealers").update({ modules }).eq("id", session.dealer.id);
-  revalidatePath("/settings");
-  revalidatePath("/", "layout");
-}

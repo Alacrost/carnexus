@@ -114,6 +114,12 @@ export async function createDeal(input: CreateDealInput): Promise<{ id?: string;
 
   // Resolve customer (existing or create a new party).
   let customerId = d.customerId || null;
+  if (d.leadId) {
+    const { data: lead, error } = await supabase.from("leads").select("customer_id,source").eq("dealer_id",session.dealer.id).eq("id",d.leadId).maybeSingle();
+    if (error || !lead) return { error: "The selected lead is unavailable or outside your CRM access." };
+    if (lead.customer_id && customerId !== lead.customer_id) return { error: "Use the contact linked to this lead, or create a separate deal without the lead." };
+    d.source = lead.source;
+  }
   if (!customerId && d.newCustomer) {
     const nc = d.newCustomer;
     const { data: c } = await supabase

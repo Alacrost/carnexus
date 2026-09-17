@@ -50,9 +50,8 @@ export default async function PublicPromoPage({
     promo = data as PublicPromo | null;
     if (promo?.status === "active" && promo.dealer_id) {
       const { data: dealer } = await supabase
-        .from("dealers")
-        .select("name")
-        .eq("id", promo.dealer_id)
+        .rpc("public_dealer", { p_id: promo.dealer_id })
+        .returns<{ id: string; name: string; slug: string }[]>()
         .maybeSingle();
       dealerName = dealer?.name ?? "";
     }

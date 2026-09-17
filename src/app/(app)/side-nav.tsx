@@ -37,6 +37,7 @@ export function SideNav({
               { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
               { href: "/inventory", label: "Inventory", icon: InventoryIcon },
               { href: "/leads", label: "Leads", icon: LeadsIcon },
+              { href: "/leads/reports", label: "Pipeline reports", icon: DashboardIcon },
               ...(canDeals
                 ? [
                     { href: "/business/deals", label: "Deals", icon: BusinessIcon },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { LeadsIcon, InventoryIcon } from "@/components/icons";
 import {
   createViewing,
@@ -66,13 +66,20 @@ export function ViewingsManager({
   staff,
   initialViewings,
   demo,
+  initialNow,
 }: {
   vehicles: VehicleOpt[];
   staff: StaffMember[];
   initialViewings: ViewingRow[];
   demo: boolean;
+  initialNow: number;
 }) {
   const [viewings, setViewings] = useState<ViewingRow[]>(initialViewings);
+  const [now, setNow] = useState(initialNow);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
 
   // Booking form
@@ -107,12 +114,11 @@ export function ViewingsManager({
   }, [viewings]);
 
   const upcoming = useMemo(() => {
-    const now = Date.now();
     return viewings
       .filter((v) => new Date(v.scheduled_for).getTime() >= now - 3600_000 && v.status !== "cancelled")
       .sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for))
       .slice(0, 8);
-  }, [viewings]);
+  }, [viewings, now]);
 
   // Warn when the chosen car already has a (non-cancelled) viewing booked.
   const carConflict = useMemo(() => {

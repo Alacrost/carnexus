@@ -45,28 +45,34 @@ export function DealSheet({
   staff,
   initialVehicleId,
   defaultSalespersonId,
+  initialLeadId = "",
+  initialSource = "",
+  initialCustomer,
 }: {
   vehicles: VehicleOpt[];
   leads: Opt[];
   staff: Opt[];
   initialVehicleId: string;
   defaultSalespersonId: string;
+  initialLeadId?: string;
+  initialSource?: string;
+  initialCustomer?: CustomerMatch;
 }) {
   const [step, setStep] = useState(0);
 
   // Customer (CRM contact)
-  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(initialCustomer?.id ?? null);
   const [title, setTitle] = useState("");
-  const [firstName, setFirstName] = useState("");
+  const [firstName, setFirstName] = useState(initialCustomer?.type === "business" ? "" : initialCustomer?.name ?? "");
   const [lastName, setLastName] = useState("");
-  const [company, setCompany] = useState("");
+  const [company, setCompany] = useState(initialCustomer?.type === "business" ? initialCustomer.name : "");
   const [jobTitle, setJobTitle] = useState("");
   const [dataConsent, setDataConsent] = useState("");
-  const [mainPhone, setMainPhone] = useState("");
+  const [mainPhone, setMainPhone] = useState(initialCustomer?.phone ?? "");
   const [ddiPhone, setDdiPhone] = useState("");
   const [fax, setFax] = useState("");
   const [mobile, setMobile] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialCustomer?.email ?? "");
   const [address, setAddress] = useState("");
   const [town, setTown] = useState("");
   const [county, setCounty] = useState("");
@@ -77,8 +83,8 @@ export function DealSheet({
   const searchSeq = useRef(0);
 
   // Source & salesperson
-  const [source, setSource] = useState("");
-  const [leadId, setLeadId] = useState("");
+  const [source, setSource] = useState(initialSource);
+  const [leadId, setLeadId] = useState(initialLeadId);
   const [salespersonId, setSalespersonId] = useState(defaultSalespersonId);
 
   // Sale

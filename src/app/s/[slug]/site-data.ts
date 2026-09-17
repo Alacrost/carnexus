@@ -40,7 +40,7 @@ export async function loadSite(slug: string): Promise<SiteData | null> {
   }
 
   const supabase = await createClient();
-  const { data: dealer } = await supabase.from("dealers").select("id, name, slug").eq("slug", slug).maybeSingle();
+  const { data: dealer } = await supabase.rpc("public_dealer", { p_slug: slug }).returns<{ id: string; name: string; slug: string }[]>().maybeSingle();
   if (!dealer) return null;
   const { data: settings } = await supabase.from("website_settings").select("enabled, headline, subheadline, about, phone, whatsapp, email, theme_color, last_synced_at").eq("dealer_id", dealer.id).maybeSingle();
   if (!settings || !settings.enabled) return null;

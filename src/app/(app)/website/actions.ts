@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode } from "@/lib/demo";
-import { can } from "@/lib/types";
+import { can, hasModule } from "@/lib/types";
 
 export interface WebsiteState {
   error?: string;
@@ -17,6 +17,7 @@ const text = (max: number) => z.union([z.literal(""), z.string().trim().max(max)
 export async function saveWebsiteSettings(_prev: WebsiteState, formData: FormData): Promise<WebsiteState> {
   const session = await requireSession();
   if (!can.manageMembers(session.role)) return { error: "Only owners and admins can manage the website." };
+  if (!hasModule(session.dealer.modules, "website")) return { error: "The Website product is not active for this dealership." };
   const parsed = z
     .object({
       enabled: z.string().optional(),
@@ -62,14 +63,4 @@ export async function saveWebsiteSettings(_prev: WebsiteState, formData: FormDat
   revalidatePath("/website");
   revalidatePath(`/s/${session.dealer.slug}`);
   return { saved: true };
-}
-
-// Pull the latest stock from DoneDeal. The live API integration lands later; for now this
-// marks the site as synced (the site already serves live from your own stock hourly).
-export async function syncFromDoneDeal(): Promise<void> {
-  const session = await requireSession();
-  if (!can.manageMembers(session.role) || isDemoMode()) return;
-  const supabase = await createClient();
-  await supabase.from("website_settings").update({ last_synced_at: new Date().toISOString() }).eq("dealer_id", session.dealer.id);
-  revalidatePath("/website");
 }

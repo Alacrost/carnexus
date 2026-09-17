@@ -1,41 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { SiteCar } from "./site-data";
 
 const money = (n: number | null) => (n ? "€" + Math.round(n).toLocaleString("en-IE") : "POA");
 
-// Caches the car list in localStorage so a return visit paints instantly, and provides
-// client-side search. (Cookies are capped at ~4KB, so the full list lives in localStorage.)
+// Server stock is authoritative, including an empty list after the last car is sold.
 export function SiteGrid({ slug, cars, accent }: { slug: string; cars: SiteCar[]; accent: string }) {
-  const [list, setList] = useState<SiteCar[]>(cars);
   const [q, setQ] = useState("");
-
-  useEffect(() => {
-    try {
-      if (cars.length) {
-        localStorage.setItem(`autonexus_site_${slug}`, JSON.stringify({ at: Date.now(), cars }));
-        setList(cars);
-      } else {
-        const cached = localStorage.getItem(`autonexus_site_${slug}`);
-        if (cached) setList((JSON.parse(cached).cars as SiteCar[]) ?? []);
-      }
-    } catch {
-      /* storage unavailable */
-    }
-  }, [slug, cars]);
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return list;
-    return list.filter((c) => `${c.make} ${c.model} ${c.year} ${c.fuel ?? ""}`.toLowerCase().includes(s));
-  }, [list, q]);
+    if (!s) return cars;
+    return cars.filter((c) => `${c.make} ${c.model} ${c.year} ${c.fuel ?? ""}`.toLowerCase().includes(s));
+  }, [cars, q]);
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-slate-900">{list.length} cars in stock</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">{cars.length} cars in stock</h2>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

@@ -3,6 +3,10 @@
 **AI Sales & Marketing Assistant for car dealers in Ireland.**
 Multi-tenant SaaS — Next.js (App Router) + Supabase (Auth, Postgres + RLS, Storage).
 
+**Current direction:** Sales CRM is the primary product, with separately sold Marketing support
+(DoneDeal ads + promotions/terms) and Dealer Websites (selectable themes + brand customisation).
+See [delivery plan and stage log](docs/DELIVERY.md) for shipped scope, remaining work and Meta Ads lead intake plans.
+
 > More cars sold, less time wasted, fewer leads lost.
 
 ## Documentation
@@ -18,10 +22,11 @@ Multi-tenant SaaS — Next.js (App Router) + Supabase (Auth, Postgres + RLS, Sto
 ## Setup
 
 1. Create a Supabase project (**EU region** — GDPR).
-2. Run the migrations in order in the Supabase SQL editor (or `supabase db push`):
-   - `supabase/migrations/001_init.sql` — schema + RLS
-   - `supabase/migrations/002_rpc.sql` — signup/invite RPCs
-   - `supabase/migrations/003_storage.sql` — photo storage policies
+2. Apply **all** versioned files in `supabase/migrations/` in numeric order to a staging
+   project (or use `supabase db push` after linking the intended project). Do not replay
+   already applied files or run migrations on production without a backup and staging check.
+   Stage 1 adds `037_crm_foundation.sql`, `038_rpc_authorization.sql` and
+   `039_public_data_boundaries.sql`.
 3. Copy `.env.example` to `.env.local` and fill in your project keys.
 4. Install & run:
 
@@ -29,6 +34,20 @@ Multi-tenant SaaS — Next.js (App Router) + Supabase (Auth, Postgres + RLS, Sto
 npm install
 npm run dev
 ```
+
+Use Node.js 24 (the test command uses native TypeScript stripping). `npm test` runs the
+migrations and permission/workflow regression checks in a disposable PGlite PostgreSQL
+database; it needs no Supabase credentials and does not touch remote data. PGlite is a
+development-only dependency because the Windows environment has no local Postgres/Docker.
+It does not replace staging tests of Supabase Auth, Data API grants or Storage.
+
+Run `npm run typecheck`, `npm run lint` and `npm run build` before release. Build downloads
+Google Fonts and needs network access. Existing lint findings and unresolved audit P0s
+are tracked in `docs/DELIVERY.md`; a build alone does not certify production readiness.
+
+For a local UI preview set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local`; never treat preview
+success as a persisted operation. Set it back to false when connecting staging. No service-role
+key is needed by the app's user-facing paths.
 
 ## Auth model (Stage 0)
 

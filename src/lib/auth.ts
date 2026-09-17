@@ -31,6 +31,8 @@ export async function requireSession(): Promise<SessionContext> {
     .select("role, status, dealers(id, name, slug, plan, created_at, modules, terms_accepted_at, terms_version)")
     .eq("user_id", user.id)
     .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .order("dealer_id", { ascending: true })
     .limit(1)
     .maybeSingle();
 
