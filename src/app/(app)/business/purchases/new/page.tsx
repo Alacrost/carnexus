@@ -1,12 +1,13 @@
 import { requireSession } from "@/lib/auth";
-import { can, hasModule } from "@/lib/types";
+import { commercialPermission } from "@/lib/commercial-server";
+import { hasModule } from "@/lib/types";
 import { ModuleUpsell } from "@/components/module-upsell";
 import { PurchaseForm } from "./purchase-form";
 
 export default async function NewPurchasePage() {
   const session = await requireSession();
   if (!hasModule(session.dealer.modules, "sales")) return <ModuleUpsell product="Sales CRM" />;
-  if (!can.viewFinancials(session.role)) {
+  if (!(await commercialPermission("purchase"))) {
     return <p className="text-sm text-slate-400">Your role does not include purchases.</p>;
   }
   return (

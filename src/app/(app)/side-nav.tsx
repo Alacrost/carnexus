@@ -15,12 +15,14 @@ type NavItem = { href: string; label: string; icon: typeof DashboardIcon };
 
 export function SideNav({
   canBusiness,
+  canPurchase,
   canDeals,
   sales,
   marketing,
   website,
 }: {
   canBusiness: boolean;
+  canPurchase: boolean;
   canDeals: boolean;
   sales: boolean;
   marketing: boolean;
@@ -44,9 +46,9 @@ export function SideNav({
                     { href: "/business/customers", label: "Customers", icon: LeadsIcon },
                   ]
                 : []),
+              ...(canPurchase ? [{ href: "/business/purchases", label: "Purchases & settlements", icon: BusinessIcon }] : []),
               ...(canBusiness
                 ? [
-                    { href: "/business/purchases", label: "Purchases", icon: BusinessIcon },
                     { href: "/business", label: "Sales & Accounts", icon: BusinessIcon },
                     { href: "/business/reports", label: "Reports", icon: DashboardIcon },
                   ]

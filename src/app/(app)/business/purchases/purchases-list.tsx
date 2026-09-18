@@ -13,6 +13,7 @@ export interface PurchaseRow {
   total: number;
   paid: number;
   outstanding: number;
+  finance_outstanding?:number;vendor_outstanding?:number;due_on?:string;finance_company?:string;finance_reference?:string;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -24,11 +25,11 @@ const STATUS_STYLE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   to_be_paid: "To be paid", approved: "Approved", paid: "Paid", cancelled: "Cancelled",
 };
-const TABS = [["all", "All"], ["to_be_paid", "To be paid"], ["approved", "Approved"], ["paid", "Paid"]] as const;
+const TABS = [["all", "All"], ["lender","Finance outstanding"], ["to_be_paid", "To be paid"], ["approved", "Approved"], ["paid", "Paid"]] as const;
 
 export function PurchasesList({ rows }: { rows: PurchaseRow[] }) {
   const [tab, setTab] = useState("all");
-  const visible = useMemo(() => (tab === "all" ? rows : rows.filter((r) => r.status === tab)), [rows, tab]);
+  const visible = useMemo(() => (tab === "all" ? rows : rows.filter((r) => tab==="lender" ? Number(r.finance_outstanding??0)>0 : r.status === tab)), [rows, tab]);
   const outstanding = rows.filter((r) => r.status !== "cancelled").reduce((a, r) => a + r.outstanding, 0);
 
   return (
@@ -55,6 +56,7 @@ export function PurchasesList({ rows }: { rows: PurchaseRow[] }) {
         <span className="ml-auto rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 text-slate-400">Outstanding <b className="text-amber-300 tabular-nums">{money(outstanding, "EUR")}</b></span>
       </div>
 
+      <section className="studio-surface p-4"><h2 className="font-semibold">Lender settlements outstanding</h2><p className="mt-1 text-xs text-slate-400">Separate from customer finance payouts. These are debts the dealer must settle on purchased stock and trade-ins.</p>{rows.filter(r=>Number(r.finance_outstanding??0)>0).map(r=><Link key={r.id} href={`/business/purchases/${r.id}`} className="mt-3 block border-t border-white/10 pt-3 text-sm"><span className="text-sky-300">{r.po_no}</span> · {r.car}<br/>{r.finance_company} · {r.finance_reference} · {money(Number(r.finance_outstanding),"EUR")} · Due {r.due_on??"not set"}</Link>)}</section>
       <div className="studio-surface overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
           <thead>

@@ -8,7 +8,7 @@ export const CRM_SOURCES = [
   ["instagram", "Instagram"], ["whatsapp", "WhatsApp"], ["walk_in", "Walk-in"],
   ["phone", "Phone"], ["other", "Other / email"],
 ] as const;
-export const CRM_PERMISSIONS = ["read", "work", "assign", "report"] as const;
+export const CRM_PERMISSIONS = ["read", "work", "assign", "report", "price", "cost", "purchase", "payment"] as const;
 export type CrmPermission = (typeof CRM_PERMISSIONS)[number];
 export interface CrmLead {
   id: string; title: string; customer_id: string | null; vehicle_id: string | null;

@@ -35,7 +35,7 @@ export function vatOn(salePrice: number, grossMargin: number, scheme: VatScheme)
 export function computeDeal(d: DealNumbers): DealResult {
   const totalCost = round2((d.purchasePrice || 0) + (d.costs || 0));
   const grossMargin = round2((d.salePrice || 0) - totalCost);
-  const vat = vatOn(d.salePrice || 0, grossMargin, d.vatScheme);
+  const vat = vatOn(d.salePrice || 0, (d.salePrice || 0) - (d.purchasePrice || 0), d.vatScheme);
   return { totalCost, grossMargin, vat, netProfit: round2(grossMargin - vat) };
 }
 
@@ -48,8 +48,8 @@ export function financeSelfCheck(): void {
   console.assert(std.netProfit === -500, "netProfit std");
 
   const mar = computeDeal({ purchasePrice: 10000, costs: 0, salePrice: 12300, vatScheme: "margin" });
-  console.assert(mar.vat === 430, "margin VAT 23/123 of 2300"); // 2300*0.23/1.23 = 430
-  console.assert(mar.netProfit === 1870, "netProfit margin");
+  console.assert(mar.vat === 430.08, "margin VAT 23/123 of 2300"); // 2300*0.23/1.23 = 430
+  console.assert(mar.netProfit === 1869.92, "netProfit margin");
 
   const none = computeDeal({ purchasePrice: 5000, costs: 200, salePrice: 6000, vatScheme: "none" });
   console.assert(none.vat === 0 && none.netProfit === 800, "none scheme");

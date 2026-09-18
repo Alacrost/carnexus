@@ -5,6 +5,8 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode, demoVehicles, demoViewings } from "@/lib/demo";
 import { can } from "@/lib/types";
+import { commercialPermission } from "@/lib/commercial-server";
+import { VehicleDetailsForm, ServiceEntryForm, PrivatePrice, type VehicleDetails } from "./vehicle-details";
 import { PhotosUploader, type Photo } from "./photos-uploader";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -33,6 +35,9 @@ export default async function VehiclePage({
   const canManage = can.manageVehicles(session.role);
   const canDeals = can.manageDeals(session.role);
   const demo = isDemoMode();
+  let details:VehicleDetails={}; let cost:number|null=null; let detailsError=false;
+  let services:{id:string;serviced_on:string;km:number|null;description:string;provider:string|null;reference:string|null}[]=[];
+  const canCost=await commercialPermission("cost");
 
   let vehicle: {
     id: string;
@@ -95,7 +100,9 @@ export default async function VehiclePage({
     const supabase = await createClient();
     const { data } = await supabase
       .from("deal_orders")
-      .select("deal:deals(id, deal_no, status, customer:customers(name))")
+      .select("deal:deals!inner(id, deal_no, status, customer:customers(name))")
+      .eq("kind","sale")
+      .not("deals.status","in","(completed,cancelled)")
       .eq("dealer_id", session.dealer.id)
       .eq("vehicle_id", id)
       .limit(1);
@@ -110,6 +117,12 @@ export default async function VehiclePage({
     }
   }
 
+  if(!demo){
+    const db=await createClient();
+    const [detailResult,historyResult]=await Promise.all([db.from("vehicle_details").select("vin,trim,body_style,colour,engine_cc,keys_count,previous_owners,service_history,last_service_on,last_service_km,timing_belt_on,nct_expiry,warranty_months,has_logbook,equipment,condition_notes").eq("dealer_id",session.dealer.id).eq("vehicle_id",id).maybeSingle(),db.from("vehicle_service_history").select("id,serviced_on,km,description,provider,reference").eq("dealer_id",session.dealer.id).eq("vehicle_id",id).order("serviced_on",{ascending:false})]);
+    detailsError=!!(detailResult.error||historyResult.error);details=detailResult.data??{};services=historyResult.data??[];
+    if(canCost){const res=await db.rpc("vehicle_purchase_cost",{p_dealer:session.dealer.id,p_vehicle:id});if(!res.error&&res.data!==null)cost=Number(res.data);}
+  }
   const canSell = canDeals && !["sold"].includes(vehicle.status);
 
   return (
@@ -187,6 +200,8 @@ export default async function VehiclePage({
         </div>
       )}
 
+      {canCost && cost!==null && <PrivatePrice value={cost}/>}
+      {detailsError?<p role="alert" className="mt-5 text-rose-300">Vehicle details could not load. Check the connection and commercial migrations.</p>:<><VehicleDetailsForm id={id} values={details} editable={canManage}/><section className="studio-surface mt-5 p-5"><h2 className="text-lg font-semibold">Maintenance history</h2>{services.length===0&&<p className="mt-2 text-sm text-slate-400">No maintenance entries recorded.</p>}<ol className="mt-3 space-y-3">{services.map(x=><li key={x.id} className="border-t border-white/10 pt-3"><p className="text-sm">{x.serviced_on} · {x.km??"—"} km · {x.provider}</p><p className="mt-1 text-sm text-slate-300">{x.description}</p><p className="text-xs text-slate-500">{x.reference}</p></li>)}</ol>{canManage&&<ServiceEntryForm id={id}/>}</section></>}
       <h2 className="mt-8 text-sm font-medium">Photos</h2>
       <div className="mt-3">
         {canManage ? (

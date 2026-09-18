@@ -14,7 +14,7 @@ const STATUS_STYLE: Record<string, string> = {
   void: "text-rose-300",
 };
 
-export function DealDocuments({ dealId, docs }: { dealId: string; docs: DocRow[] }) {
+export function DealDocuments({ dealId, docs, status }: { dealId: string; docs: DocRow[]; status:string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState("");
@@ -37,10 +37,11 @@ export function DealDocuments({ dealId, docs }: { dealId: string; docs: DocRow[]
     <section className="studio-surface p-4">
       <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Documents</h2>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" onClick={() => gen("quote")} disabled={pending} className={btn}>{busy === "quote" ? "…" : "Quote"}</button>
+        <button type="button" onClick={() => gen("quote")} disabled={pending || ["completed","cancelled"].includes(status)} className={btn}>{busy === "quote" ? "…" : "Quote"}</button>
         <button type="button" onClick={() => gen("agreement")} disabled={pending} className={btn}>{busy === "agreement" ? "…" : "Print Agreement"}</button>
-        <button type="button" onClick={() => gen("invoice")} disabled={pending} className="btn-gradient text-xs">{busy === "invoice" ? "…" : "Create Invoice"}</button>
+        <button type="button" onClick={() => gen("invoice")} disabled={pending || status !== "completed"} className="btn-gradient text-xs disabled:opacity-40">{busy === "invoice" ? "…" : "Open final invoice"}</button>
       </div>
+      <p className="mt-2 text-xs text-slate-400">Completion creates the final invoice from the agreed terms. Earlier agreements remain in the document history.</p>
       {err && <p className="mt-2 text-xs text-rose-400">{err}</p>}
 
       {docs.length > 0 && (

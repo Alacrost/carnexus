@@ -14,10 +14,14 @@ interface Snapshot {
   date: string;
   currency: string;
   deal_no?: string;
-  dealer: { name: string };
+  so_no?: string; agreement_number?:string;
+  finance?: { company?:string; address?:string; reference?:string; invoice_to_finance?:boolean };
+  trade_ins?: { allowance:number; settlement:number; provider:string; equity:number }[];
+  payments?: { kind:string;method:string;amount:number;date:string;reference:string }[];
+  dealer: { name?: string; legal_name?:string; address?:string; vat_number?:string;company_number?:string;phone?:string;email?:string;bank_details?:string;agreement_terms?:string;invoice_notes?:string };
   customer: { name: string; company?: string | null; address?: string | null; phone?: string | null; email?: string | null; vat_number?: string | null } | null;
   vehicle: { label: string; reg?: string | null } | null;
-  lines?: { description: string; gross: number }[];
+  lines?: { description: string; gross: number;vat_rate?:number|null;vat?:number }[];
   retail: number;
   siv: number;
   sale: number;
@@ -76,20 +80,21 @@ export default async function DealDocPage({ params }: { params: Promise<{ dealId
         {/* Letterhead */}
         <div className="flex items-start justify-between border-b border-slate-200 pb-5">
           <div>
-            <p className="text-lg font-semibold tracking-tight">{snap.dealer.name}</p>
-            <p className="text-xs text-slate-500">Motor Dealer</p>
+            <p className="text-lg font-semibold tracking-tight">{snap.dealer.legal_name ?? snap.dealer.name}</p>
+            <p className="max-w-sm whitespace-pre-line text-xs text-slate-500">{snap.dealer.address}</p><p className="text-xs text-slate-500">{snap.dealer.vat_number ? "VAT: "+snap.dealer.vat_number : ""} {snap.dealer.company_number ? " · Company: "+snap.dealer.company_number : ""}</p><p className="text-xs text-slate-500">{[snap.dealer.phone,snap.dealer.email].filter(Boolean).join(" · ")}</p>
           </div>
           <div className="text-right">
             <h1 className="text-2xl font-bold uppercase tracking-wide">{KIND_TITLE[snap.kind] ?? snap.kind}</h1>
             <p className="mt-1 text-sm text-slate-600">No. <span className="font-mono">{snap.number}</span></p>
-            <p className="text-xs text-slate-500">Date: {snap.date}{snap.deal_no ? ` · Deal ${snap.deal_no}` : ""}</p>
+            <p className="text-xs text-slate-500">Date: {snap.date}{snap.deal_no ? ` · Deal ${snap.deal_no}` : ""}{snap.so_no ? ` · ${snap.so_no}` : ""}</p>
           </div>
         </div>
 
+        {isInvoice && snap.finance?.invoice_to_finance && <section className="mt-5 rounded border border-slate-200 p-4 text-sm"><p className="text-xs uppercase text-slate-500">Invoice recipient — finance company</p><p className="font-semibold">{snap.finance.company}</p><p className="whitespace-pre-line">{snap.finance.address}</p><p>Finance agreement: {snap.finance.reference || "—"}</p></section>}
         {/* Bill to + vehicle */}
         <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{isInvoice ? "Invoice to" : "Customer"}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{isInvoice && !snap.finance?.invoice_to_finance ? "Invoice to" : "Customer / vehicle recipient"}</p>
             <p className="mt-1 font-medium">{snap.customer?.company || snap.customer?.name || "—"}</p>
             {snap.customer?.company && snap.customer?.name && <p>{snap.customer.name}</p>}
             {snap.customer?.address && <p className="text-slate-600">{snap.customer.address}</p>}
@@ -117,15 +122,16 @@ export default async function DealDocPage({ params }: { params: Promise<{ dealId
               : [{ description: `${snap.vehicle?.label ?? "Vehicle"}${snap.vehicle?.reg ? ` (${snap.vehicle.reg})` : ""}`, gross: snap.sale }]
             ).map((l, i) => (
               <tr key={i} className="border-b border-slate-100">
-                <td className="py-2.5">{l.description}</td>
+                <td className="py-2.5">{l.description}{"vat_rate" in l && l.vat_rate != null && <span className="ml-2 text-xs text-slate-500">VAT {l.vat_rate}% · {money(l.vat??0,c)}</span>}</td>
                 <td className="py-2.5 text-right tabular-nums">{money(l.gross, c)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {isInvoice && snap.agreement_number && <p className="mt-2 text-xs text-slate-500">From agreement {snap.agreement_number}</p>}
 
         {/* Agreement math (trade-in) */}
-        {isAgreement && (
+        {(isAgreement || isInvoice) && (
           <div className="mt-4 ml-auto w-72 space-y-1 text-sm">
             <Row label="Retail price" value={money(snap.retail, c)} />
             <Row label="Less trade-in (SIV)" value={`− ${money(snap.siv, c)}`} />
@@ -135,16 +141,20 @@ export default async function DealDocPage({ params }: { params: Promise<{ dealId
 
         {/* Totals */}
         <div className="mt-4 ml-auto w-72 space-y-1 border-t border-slate-200 pt-3 text-sm">
-          <Row label={`VAT (${f.vatLabel})`} value={money(f.vat, c)} />
+          {(snap.scheme !== "margin" || f.vat > 0) && <Row label={`VAT (${f.vatLabel})`} value={money(f.vat, c)} />}
           <Row label={isInvoice ? "Invoice total" : "Sub total"} value={money(f.invoiceTotal, c)} strong />
-          {snap.deposits > 0 && <Row label="Deposits paid" value={`− ${money(snap.deposits, c)}`} />}
+          {snap.deposits > 0 && <Row label="Net receipts (after refunds)" value={`− ${money(snap.deposits, c)}`} />}
           <Row label="Balance due" value={money(isAgreement ? f.balanceAgreement : f.balanceInvoice, c)} strong />
         </div>
 
+        {snap.trade_ins?.map((t,i)=><div key={i} className="mt-5 border-t border-slate-200 pt-3 text-sm"><p className="font-semibold">Trade-in settlement</p><p>Allowance {money(t.allowance,c)} · Lender settlement {money(t.settlement,c)} · Net equity {money(t.equity,c)}</p><p>Lender: {t.provider || "None"}</p></div>)}
+        {snap.payments && snap.payments.length>0 && <section className="mt-5 text-xs"><h2 className="font-semibold">Payment record</h2>{snap.payments.map((p,i)=><p key={i}>{p.date} · {p.kind} · {p.method} · {money(p.kind==="refund"?-p.amount:p.amount,c)} · {p.reference}</p>)}</section>}
         {/* Footer / terms */}
         <div className="mt-10 border-t border-slate-200 pt-4 text-[11px] leading-relaxed text-slate-500">
-          {snap.scheme === "margin" && <p>Sold under the VAT Margin Scheme — VAT is not separately reclaimable.</p>}
+          {snap.scheme === "margin" && <p>Margin scheme — second-hand goods. VAT on the vehicle is not separately disclosed.</p>}
           {isAgreement && <p className="mt-1">This agreement confirms the vehicle, price and any trade-in. A deposit reserves the vehicle. Balance due on collection.</p>}
+          <p className="mt-3 whitespace-pre-line">{isAgreement?snap.dealer.agreement_terms:snap.dealer.invoice_notes}</p><p className="mt-3 whitespace-pre-line">{snap.dealer.bank_details}</p>
+          {isAgreement&&<div className="mt-8 grid grid-cols-2 gap-8"><p>Customer signature: __________________<br/>Date: __________________</p><p>Dealer signature: __________________<br/>Date: __________________</p></div>}
           <p className="mt-2">Thank you for your business.</p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { testCommercial } from './commercial-database.mjs';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
@@ -116,4 +117,5 @@ try {
   await login(owner);
   await denied(()=>save(null,0),/crm_not_allowed/);
   console.log('PASS: all migrations; cross-tenant denial; anonymous RPC denial; no admin escalation; atomic lead workflow; optimistic lock; immutable activities; reports; custom profile revocation; product gate.');
+  await testCommercial(db,{owner,sales,outsider,dealer,login});
 } finally { await db.close(); }

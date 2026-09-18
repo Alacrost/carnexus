@@ -14,6 +14,7 @@ export function DealAddons({ dealId, addons, currency, showProfit }: { dealId: s
   const [kind, setKind] = useState("warranty");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [vatRate,setVatRate]=useState("23");
   const [cost, setCost] = useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
@@ -21,7 +22,7 @@ export function DealAddons({ dealId, addons, currency, showProfit }: { dealId: s
   function save() {
     setError("");
     start(async () => {
-      const res = await addDealAddon({ dealId, kind, name, price: Number(price), cost: cost ? Number(cost) : undefined });
+      const res = await addDealAddon({ dealId, kind, name, price: Number(price), vatRate:Number(vatRate),cost: cost ? Number(cost) : undefined });
       if (res.error) setError(res.error);
       else { setOpen(false); setName(""); setPrice(""); setCost(""); router.refresh(); }
     });
@@ -71,7 +72,8 @@ export function DealAddons({ dealId, addons, currency, showProfit }: { dealId: s
             <button type="button" onClick={save} disabled={pending || name.trim().length < 2 || Number(price) <= 0} className="btn-gradient text-xs disabled:opacity-50">{pending ? "…" : "Add"}</button>
             <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white">Cancel</button>
           </div>
-          {error && <p className="text-xs text-rose-400">{error}</p>}
+          {open && <label className="mt-2 block text-xs">Add-on VAT rate (confirm the correct treatment)<select value={vatRate} onChange={e=>setVatRate(e.target.value)} className="studio-input">{[0,9,13.5,23].map(r=><option key={r} value={r}>{r}%</option>)}</select></label>}
+      {error && <p className="text-xs text-rose-400">{error}</p>}
         </div>
       ) : (
         <button type="button" onClick={() => setOpen(true)} className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-200 hover:border-white/25">+ Add item</button>

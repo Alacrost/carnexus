@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { commercialPermission } from "@/lib/commercial-server";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode, demoSalesDeals } from "@/lib/demo";
@@ -5,10 +7,11 @@ import { can, hasModule } from "@/lib/types";
 import { ModuleUpsell } from "@/components/module-upsell";
 import { DealsBoard, type DealRow } from "./deals-board";
 
-export default async function DealsPage() {
+export default async function DealsPage({searchParams}:{searchParams:Promise<{closed?:string}>}) {
+  const showClosed=(await searchParams).closed==="1";
   const session = await requireSession();
   if (!hasModule(session.dealer.modules, "sales")) return <ModuleUpsell product="Sales CRM" />;
-  if (!can.manageDeals(session.role)) {
+  if (!can.manageDeals(session.role) || !(await commercialPermission("read"))) {
     return <p className="text-sm text-slate-400">Your role does not include the sales process.</p>;
   }
 
@@ -66,7 +69,7 @@ export default async function DealsPage() {
   }
 
   // Deals workspace = open work only; completed/cancelled live in Sales & Accounts.
-  rows = rows.filter((r) => r.status !== "completed" && r.status !== "cancelled");
+  rows = rows.filter((r) => showClosed ? ["completed","cancelled"].includes(r.status) : !["completed","cancelled"].includes(r.status));
 
-  return <DealsBoard rows={rows} />;
+  return <><div className="mb-4 flex gap-4 text-sm text-sky-300"><Link href={showClosed?"/business/deals":"/business/deals?closed=1"}>{showClosed?"Open deals":"Completed / cancelled deals & invoices"}</Link><Link href="/business/document-settings">Document settings</Link><Link href="/business/purchases">Purchases & lender settlements</Link></div><DealsBoard rows={rows}/></>;
 }

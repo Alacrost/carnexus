@@ -31,19 +31,22 @@ export function PurchaseForm() {
   const [invRef, setInvRef] = useState("");
   const [notes, setNotes] = useState("");
 
+  const requestId=useRef("");
+  const [settlement,setSettlement]=useState(""); const [provider,setProvider]=useState(""); const [reference,setReference]=useState(""); const [validUntil,setValidUntil]=useState(""); const [dueOn,setDueOn]=useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
   useEffect(() => {
     if (vendorId) return;
     const q = vendorName.trim();
-    if (q.length < 2) { setMatches([]); return; }
+    if (q.length < 2) return;
     const s = ++seq.current;
+    let active=true;
     const t = setTimeout(async () => {
       const res = await searchCustomers(q);
-      if (s === seq.current) { setMatches(res); setShowMatches(true); }
+      if (active && s === seq.current) { setMatches(res); setShowMatches(true); }
     }, 220);
-    return () => clearTimeout(t);
+    return () => {clearTimeout(t);active=false;};
   }, [vendorName, vendorId]);
 
   const canSave = vendorName.trim().length >= 2 && make.trim() && model.trim() && year && registration.trim() && Number(price) > 0;
@@ -64,7 +67,7 @@ export function PurchaseForm() {
         vendorId: vendorId || undefined,
         newVendor: vendorId ? undefined : { name: vendorName, phone: vendorPhone || undefined, email: vendorEmail || undefined },
         make, model, year: Number(year), registration, km: km ? Number(km) : undefined,
-        price: Number(price), vatScheme, invRef: invRef || undefined, notes: notes || undefined,
+        price: Number(price), settlement:Number(settlement)||0,settlementProvider:provider,settlementReference:reference,settlementValidUntil:validUntil,dueOn,requestId:requestId.current ||= crypto.randomUUID(),vatScheme, invRef: invRef || undefined, notes: notes || undefined,
       });
       if (res?.error) setError(res.error);
     });
@@ -81,7 +84,7 @@ export function PurchaseForm() {
             <input value={vendorName} onChange={(e) => { setVendorName(e.target.value); if (vendorId) setVendorId(null); }} className={inp} placeholder="Vendor name" autoComplete="off" />
             {vendorId && <span className="absolute right-2 top-8 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-200">Existing</span>}
           </label>
-          {showMatches && !vendorId && matches.length > 0 && (
+          {showMatches && vendorName.trim().length >= 2 && !vendorId && matches.length > 0 && (
             <ul className="absolute z-20 top-16 w-full overflow-hidden rounded-xl border border-white/10 bg-[#0b0f17] shadow-xl">
               {matches.map((m) => (
                 <li key={m.id}>
@@ -121,6 +124,7 @@ export function PurchaseForm() {
             <select value={vatScheme} onChange={(e) => setVatScheme(e.target.value)} className={inp}>{SCHEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           <label className="text-sm"><span className="text-slate-300">Supplier invoice ref</span><input value={invRef} onChange={(e) => setInvRef(e.target.value)} className={inp} /></label>
         </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm">Outstanding lender settlement (€)<input type="number" min="0" step="0.01" value={settlement} onChange={e=>setSettlement(e.target.value)} className={inp}/></label><label className="text-sm">Finance company<input value={provider} onChange={e=>setProvider(e.target.value)} className={inp}/></label><label className="text-sm">Loan reference<input value={reference} onChange={e=>setReference(e.target.value)} className={inp}/></label><label className="text-sm">Settlement valid until<input type="date" value={validUntil} onChange={e=>setValidUntil(e.target.value)} className={inp}/></label><label className="text-sm">Payment due date<input type="date" value={dueOn} onChange={e=>setDueOn(e.target.value)} className={inp}/></label></div><p className="mt-2 text-xs text-slate-400">The purchase price includes the lender settlement. The remainder is owed to the vendor.</p>
         <label className="mt-4 block text-sm"><span className="text-slate-300">Notes</span><textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className={inp} /></label>
       </section>
 

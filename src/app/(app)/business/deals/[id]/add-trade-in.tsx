@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { addTradeIn } from "../actions";
 
 export function AddTradeIn({ dealId }: { dealId: string }) {
@@ -14,10 +14,12 @@ export function AddTradeIn({ dealId }: { dealId: string }) {
   const [km, setKm] = useState("");
   const [allowance, setAllowance] = useState("");
   const [settlement, setSettlement] = useState("");
+  const requestId=useRef("");
+  const [provider,setProvider]=useState(""); const [reference,setReference]=useState(""); const [validUntil,setValidUntil]=useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
-  const netEquity = Math.max(0, (Number(allowance) || 0) - (Number(settlement) || 0));
+  const netEquity = (Number(allowance) || 0) - (Number(settlement) || 0);
   const canSave = make.trim() && model.trim() && year && registration.trim() && Number(allowance) > 0;
   const inp = "mt-1 studio-input";
 
@@ -28,6 +30,7 @@ export function AddTradeIn({ dealId }: { dealId: string }) {
         dealId, make, model, year: Number(year), registration,
         km: km ? Number(km) : undefined, allowance: Number(allowance),
         settlement: settlement ? Number(settlement) : undefined,
+        settlementProvider:provider,settlementReference:reference,settlementValidUntil:validUntil,requestId:requestId.current ||= crypto.randomUUID(),
       });
       if (res.error) setError(res.error);
       else { setOpen(false); router.refresh(); }
@@ -50,6 +53,7 @@ export function AddTradeIn({ dealId }: { dealId: string }) {
         <label className="text-xs text-slate-400">Allowance (€)<input type="number" value={allowance} onChange={(e) => setAllowance(e.target.value)} className={inp} /></label>
         <label className="text-xs text-slate-400">Settlement (€)<input type="number" value={settlement} onChange={(e) => setSettlement(e.target.value)} className={inp} /></label>
       </div>
+      <div className="grid gap-2 sm:grid-cols-3"><label className="text-xs">Existing lender<input value={provider} onChange={e=>setProvider(e.target.value)} className={inp}/></label><label className="text-xs">Loan reference<input value={reference} onChange={e=>setReference(e.target.value)} className={inp}/></label><label className="text-xs">Settlement valid until<input type="date" value={validUntil} onChange={e=>setValidUntil(e.target.value)} className={inp}/></label></div><p className="text-xs text-slate-400">The dealer records the lender settlement under Purchases. Negative equity increases the customer balance.</p>
       <p className="text-[11px] text-slate-500">Net equity toward the car: <span className="text-slate-300 tabular-nums">€{netEquity.toLocaleString("en-IE")}</span></p>
       <div className="flex gap-2">
         <button type="button" onClick={save} disabled={!canSave || pending} className="btn-gradient text-xs disabled:opacity-50">{pending ? "…" : "Save trade-in"}</button>

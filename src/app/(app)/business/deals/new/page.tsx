@@ -1,3 +1,4 @@
+import { commercialPermission } from "@/lib/commercial-server";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode, demoVehicles, demoLeads, demoStaff } from "@/lib/demo";
@@ -11,9 +12,10 @@ export default async function NewDealPage({
   searchParams: Promise<{ vehicleId?: string; leadId?: string }>;
 }) {
   const session = await requireSession();
-  if (!can.manageDeals(session.role)) {
+  if (!can.manageDeals(session.role) || !(await commercialPermission("work"))) {
     return <p className="text-sm text-slate-400">Your role does not include the sales process.</p>;
   }
+  const canEditPrice = await commercialPermission("price");
   const { vehicleId: preVehicleId, leadId: requestedLeadId } = await searchParams;
   let initialLeadId = "", initialSource = "";
   let initialCustomer: CustomerMatch | undefined;
@@ -65,6 +67,8 @@ export default async function NewDealPage({
       <div className="mt-6">
         <DealSheet
           vehicles={vehicles}
+          canEditPrice={canEditPrice}
+          lockVehicle={!!preVehicleId}
           leads={leads}
           staff={staff}
           initialVehicleId={initialVehicleId}

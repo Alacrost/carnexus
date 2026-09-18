@@ -63,7 +63,7 @@ export function addonKindLabel(kind: string): string {
 export function dealMoney(input: { retailPrice: number; sivTotal: number; paid: number }) {
   const retail = input.retailPrice || 0;
   const siv = input.sivTotal || 0;
-  const costToChange = Math.max(0, retail - siv);
+  const costToChange = retail - siv;
   const balance = costToChange - (input.paid || 0);
   return { retail, siv, costToChange, paid: input.paid || 0, balance };
 }
@@ -79,7 +79,7 @@ export function docFigures(input: {
   deposits: number;
 }) {
   const sale = input.sale || 0;
-  const costToChange = Math.max(0, (input.retail || 0) - (input.siv || 0));
+  const costToChange = (input.retail || 0) - (input.siv || 0);
   let vat = 0;
   let vatRate = 23;
   let vatLabel = "23%";
@@ -101,7 +101,7 @@ export function docFigures(input: {
     vatLabel,
     subTotal: sale,
     invoiceTotal: sale,
-    balanceInvoice: sale - (input.deposits || 0),
+    balanceInvoice: sale - (input.siv || 0) - (input.deposits || 0),
     balanceAgreement: costToChange - (input.deposits || 0),
   };
 }

@@ -24,7 +24,7 @@ const SCHEMES = [
   ["none", "No VAT"],
 ];
 const METHODS = [
-  ["", "—"], ["cash", "Cash"], ["bank", "Bank"], ["card", "Card"], ["finance", "Finance"], ["part_exchange", "Part-exchange"],
+  ["", "—"], ["cash", "Cash"], ["bank", "Bank"], ["card", "Card"], ["finance", "Finance"],
 ];
 const SOURCES = [
   ["", "—"], ["donedeal", "DoneDeal"], ["facebook", "Facebook"], ["instagram", "Instagram"],
@@ -48,6 +48,8 @@ export function DealSheet({
   initialLeadId = "",
   initialSource = "",
   initialCustomer,
+  lockVehicle = false,
+  canEditPrice = false,
 }: {
   vehicles: VehicleOpt[];
   leads: Opt[];
@@ -57,8 +59,13 @@ export function DealSheet({
   initialLeadId?: string;
   initialSource?: string;
   initialCustomer?: CustomerMatch;
+  lockVehicle?: boolean;
+  canEditPrice?: boolean;
 }) {
   const [step, setStep] = useState(0);
+  const [editingPrice,setEditingPrice]=useState(false);
+  const [priceReason,setPriceReason]=useState("");
+  const requestId=useRef<string>("");
 
   // Customer (CRM contact)
   const [customerId, setCustomerId] = useState<string | null>(initialCustomer?.id ?? null);
@@ -106,13 +113,14 @@ export function DealSheet({
   useEffect(() => {
     if (customerId) return; // already picked an existing party
     const q = searchTerm;
-    if (q.length < 2) { setMatches([]); return; }
+    if (q.length < 2) return;
     const seq = ++searchSeq.current;
+    let active=true;
     const t = setTimeout(async () => {
       const res = await searchCustomers(q);
-      if (seq === searchSeq.current) { setMatches(res); setShowMatches(true); }
+      if (active && seq === searchSeq.current) { setMatches(res); setShowMatches(true); }
     }, 220);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); active=false; };
   }, [searchTerm, customerId]);
 
   const balance = useMemo(() => (Number(salePrice) || 0) - (Number(deposit) || 0), [salePrice, deposit]);
@@ -189,6 +197,7 @@ export function DealSheet({
         salespersonId: salespersonId || undefined,
         vehicleId,
         salePrice: Number(salePrice),
+        priceReason, requestId: requestId.current ||= crypto.randomUUID(),
         vatScheme,
         depositAmount: deposit ? Number(deposit) : undefined,
         depositMethod: depositMethod || undefined,
@@ -272,7 +281,7 @@ export function DealSheet({
               <input value={lastName} onChange={(e) => { setLastName(e.target.value); clearIfPicked(); }} className={inp} autoComplete="off" /></label>
           </div>
 
-          {showMatches && !customerId && matches.length > 0 && (
+          {showMatches && searchTerm.length >= 2 && !customerId && matches.length > 0 && (
             <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] p-1">
               <p className="px-2 py-1 text-[11px] uppercase tracking-wider text-slate-500">Existing contacts</p>
               <ul>
@@ -353,13 +362,16 @@ export function DealSheet({
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Sale</h2>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <label className="text-sm sm:col-span-2"><span className="text-slate-300">Car</span>
-                <select value={vehicleId} onChange={(e) => selectCar(e.target.value)} className={inp}>
+                <select disabled={lockVehicle} aria-label="Vehicle" value={vehicleId} onChange={(e) => selectCar(e.target.value)} className={inp}>
                   {vehicles.length === 0 && <option value="">No cars in stock</option>}
                   {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
                 </select></label>
               <div className="text-sm"><span className="text-slate-300">Sale price</span>
                 <div className="mt-1 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
                   <span className="text-lg font-semibold tabular-nums text-slate-100">{Number(salePrice) > 0 ? eur(Number(salePrice)) : "—"}</span>
+                  {canEditPrice && <button type="button" className="text-sm text-sky-300" onClick={()=>setEditingPrice(!editingPrice)}>Edit price</button>}
+                  {editingPrice && canEditPrice && <div><label>Sale price (€)<input aria-label="Sale price" type="number" min="0.01" step="0.01" value={salePrice} onChange={e=>setSalePrice(e.target.value)} className="studio-input"/></label><label>Price change reason<input value={priceReason} onChange={e=>setPriceReason(e.target.value)} minLength={3} className="studio-input"/></label></div>}
+                  {lockVehicle && <p className="text-xs text-slate-400">Vehicle locked from “Sell this car”. Start a new sale to choose another car.</p>}
                   <span className="text-[11px] uppercase tracking-wider text-slate-500">from listing</span>
                 </div></div>
               <label className="text-sm"><span className="text-slate-300">VAT scheme</span>
@@ -370,7 +382,7 @@ export function DealSheet({
           </div>
           <div className="border-t border-white/5 pt-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Deposit</h2>
-            <p className="mt-1 text-xs text-slate-500">A deposit reserves the car and moves it to &ldquo;reserved&rdquo;.</p>
+            <p className="mt-1 text-xs text-slate-500">Opening the deal reserves this car. Record only a deposit already received.</p>
             <div className="mt-3 grid gap-4 sm:grid-cols-3">
               <label className="text-sm"><span className="text-slate-300">Amount (€)</span>
                 <input type="number" value={deposit} onChange={(e) => setDeposit(e.target.value)} className={inp} /></label>

@@ -7,7 +7,8 @@ import { isDemoMode, demoSalesDeals } from "@/lib/demo";
 import { can } from "@/lib/types";
 import { money } from "@/lib/currency";
 import { dealMoney } from "@/lib/deals";
-import { setDealStatus } from "../actions";
+import { commercialPermission } from "@/lib/commercial-server";
+import { StatusButton, PriceEditor, FinancePanel, type FinanceValues } from "./commercial-panels";
 import { AddPayment } from "./add-payment";
 import { DealStage } from "./deal-stage";
 import { DealDocuments, type DocRow } from "./deal-documents";
@@ -16,9 +17,10 @@ import { RequiredDocs } from "./required-docs";
 import { DealAddons, type Addon } from "./deal-addons";
 
 interface Pay { kind: string; amount: number; method: string | null; paid_on: string | null }
-interface Evt { kind: string; detail: string; by: string; at: string }
+interface Evt { kind: string; detail: string; audit?:unknown; by: string; at: string }
 interface TradeIn { label: string; reg: string | null; allowance: number; settlement: number; netEquity: number }
-interface DealView {
+interface DealView extends FinanceValues {
+  version?: number; so_no?: string;
   id: string; deal_no: string; status: string; stage: string; currency: string;
   customer: string; customerContact: string; salesperson: string;
   car: string; sale: number; retail: number; siv: number; vat_scheme: string;
@@ -45,9 +47,12 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await requireSession();
   if (!can.manageDeals(session.role)) return <p className="text-sm text-slate-400">No access.</p>;
-  const showProfit = can.viewFinancials(session.role);
+  const [canPrice,canPay,canWork,canRead] = await Promise.all(["price","payment","work","read"].map(commercialPermission));
+  if(!canRead)return <p>No commercial access.</p>;
+  const showProfit = false; // Cost fields are not selected into the sales view.
 
   let d: DealView | null = null;
+  let summary:{total:number;paid:number;balance:number;equity:number}|null=null;
 
   if (isDemoMode()) {
     const x = demoSalesDeals.find((z) => z.id === id);
@@ -66,9 +71,9 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
     };
   } else {
     const supabase = await createClient();
-    const { data: deal } = await supabase.from("deals").select("id, deal_no, status, stage, currency, customer_id, salesperson_id, retail_price, siv_total, required_docs").eq("dealer_id", session.dealer.id).eq("id", id).maybeSingle();
+    const { data: deal } = await supabase.from("deals").select("id, deal_no, status, stage, currency, customer_id, salesperson_id, retail_price, siv_total, required_docs, version, so_no, finance_company, finance_reference, finance_address, finance_expected, finance_status, invoice_to_finance").eq("dealer_id", session.dealer.id).eq("id", id).maybeSingle();
     if (!deal) notFound();
-    const [{ data: order }, { data: pays }, { data: customer }, { data: sp }, { data: evRows }, { data: docRows }] = await Promise.all([
+    const results = await Promise.all([
       supabase.from("deal_orders").select("vehicle_id, price, vat_scheme").eq("dealer_id", session.dealer.id).eq("deal_id", id).eq("kind", "sale").maybeSingle(),
       supabase.from("payments").select("kind, amount, method, paid_on").eq("dealer_id", session.dealer.id).eq("deal_id", id).order("created_at"),
       deal.customer_id ? supabase.from("customers").select("name, phone, email").eq("id", deal.customer_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -76,7 +81,13 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
       supabase.from("deal_events").select("kind, detail, created_by, created_at").eq("dealer_id", session.dealer.id).eq("deal_id", id).order("created_at", { ascending: false }),
       supabase.from("deal_documents").select("id, kind, number, status, created_at").eq("dealer_id", session.dealer.id).eq("deal_id", id).order("created_at", { ascending: false }),
     ]);
-    const { data: pxRow } = await supabase.from("deal_orders").select("vehicle_id, price, settlement_amount, net_equity").eq("dealer_id", session.dealer.id).eq("deal_id", id).eq("kind", "purchase").eq("is_trade_in", true).maybeSingle();
+    if(results.some(r=>"error" in r && r.error))return <p role="alert">Deal data could not load. Retry before recording payments.</p>;
+    const [{ data: order }, { data: pays }, { data: customer }, { data: sp }, { data: evRows }, { data: docRows }] = results;
+    const aggregate=await supabase.rpc("deal_balances",{p_dealer:session.dealer.id,p_deal:id});
+    if(aggregate.error||!aggregate.data)return <p role="alert">The authoritative balance could not load.</p>;
+    summary=aggregate.data as {total:number;paid:number;balance:number;equity:number};
+    const { data: pxRow,error:pxError } = await supabase.from("deal_orders").select("vehicle_id, price, settlement_amount, net_equity").eq("dealer_id", session.dealer.id).eq("deal_id", id).eq("kind", "purchase").eq("is_trade_in", true).maybeSingle();
+    if(pxError)return <p role="alert">Trade-in details could not load.</p>;
     let tradeIn: TradeIn | null = null;
     if (pxRow) {
       let label = "Trade-in";
@@ -87,7 +98,8 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
       }
       tradeIn = { label, reg, allowance: Number(pxRow.price ?? 0), settlement: Number(pxRow.settlement_amount ?? 0), netEquity: Number(pxRow.net_equity ?? 0) };
     }
-    const { data: addonRows } = await supabase.from("deal_addons").select("id, kind, name, price, cost").eq("dealer_id", session.dealer.id).eq("deal_id", id).order("created_at");
+    const { data: addonRows,error:addonError } = await supabase.from("deal_addons").select("id, kind, name, price").eq("dealer_id", session.dealer.id).eq("deal_id", id).order("created_at");
+    if(addonError)return <p role="alert">Sale extras could not load.</p>;
     let car = "—";
     if (order?.vehicle_id) {
       const { data: v } = await supabase.from("vehicles").select("make, model, year").eq("id", order.vehicle_id).maybeSingle();
@@ -97,7 +109,7 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
     const { data: evProfs } = evByIds.length ? await supabase.from("profiles").select("id, full_name").in("id", evByIds) : { data: [] as { id: string; full_name: string | null }[] };
     const byName = new Map((evProfs ?? []).map((p) => [p.id, p.full_name]));
     d = {
-      id: deal.id, deal_no: deal.deal_no, status: deal.status, stage: deal.stage ?? "vehicle_interest", currency: deal.currency,
+      ...deal, id: deal.id, deal_no: deal.deal_no, status: deal.status, stage: deal.stage ?? "vehicle_interest", currency: deal.currency,
       customer: customer?.name ?? "—", customerContact: [customer?.phone, customer?.email].filter(Boolean).join(" · "),
       salesperson: sp?.full_name ?? "—", car, sale: Number(order?.price ?? 0),
       retail: Number(deal.retail_price ?? order?.price ?? 0), siv: Number(deal.siv_total ?? 0), vat_scheme: order?.vat_scheme ?? "standard",
@@ -106,7 +118,7 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
         kind: e.kind,
         detail: (e.detail as { message?: string } | null)?.message ?? e.kind,
         by: e.created_by ? byName.get(e.created_by) ?? "—" : "System",
-        at: e.created_at,
+        at: e.created_at, audit:e.detail,
       })),
       documents: (docRows ?? []).map((r) => ({ id: r.id, kind: r.kind, number: r.number, status: r.status, date: r.created_at })),
       tradeIn,
@@ -115,12 +127,13 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
     };
   }
 
-  const paid = d.payments.reduce((a, p) => a + Number(p.amount), 0);
+  const paid = summary ? Number(summary.paid) : d.payments.reduce((a, p) => a + (p.kind === "refund" ? -Number(p.amount) : p.kind === "trade_allowance" ? 0 : Number(p.amount)), 0);
+  const closed = ["completed","cancelled"].includes(d.status);
   const m = dealMoney({ retailPrice: d.retail, sivTotal: d.siv, paid });
-  const addonsTotal = d.addons.reduce((a, x) => a + Number(x.price), 0);
+  const addonsTotal = summary ? Number(summary.total)-d.retail : d.addons.reduce((a, x) => a + Number(x.price), 0);
   const customerTotal = m.costToChange + addonsTotal;
-  const balance = customerTotal - paid;
-  const transitions = NEXT[d.status] ?? [];
+  const balance = summary ? Number(summary.balance) : customerTotal - paid;
+  const transitions = canWork ? NEXT[d.status] ?? [] : [];
 
   const kpi = (label: string, value: string, accent = "text-slate-100") => (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
@@ -137,14 +150,11 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
         </Link>
         <h1 className="font-mono text-xl font-semibold text-slate-100">{d.deal_no}</h1>
         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs capitalize text-slate-300">{d.status}</span>
-        <DealStage dealId={d.id} stage={d.stage} />
+        {canWork && !closed && <DealStage dealId={d.id} stage={d.stage} />}
+        <span className="font-mono text-xs text-slate-400">{d.so_no}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           {transitions.map((t) => (
-            <form key={t.status} action={setDealStatus}>
-              <input type="hidden" name="id" value={d.id} />
-              <input type="hidden" name="status" value={t.status} />
-              <button type="submit" className={t.status === "cancelled" ? "rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 hover:text-rose-400" : "btn-gradient text-xs"}>{t.label}</button>
-            </form>
+            <StatusButton key={t.status} id={d.id} status={t.status} label={t.label}/>
           ))}
         </div>
       </div>
@@ -176,8 +186,10 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
                 <span className="text-xs capitalize text-slate-500">{d.vat_scheme} VAT scheme</span>
                 <span className="tabular-nums text-slate-200">{money(d.sale, d.currency)}</span>
               </div>
+              {canPrice && !closed && <PriceEditor id={d.id} version={d.version??1} price={d.sale}/>}
             </section>
           </div>
+          {canWork && <FinancePanel id={d.id} values={d} closed={closed}/>}
 
           <section className="studio-surface p-4">
             <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Trade-in / part-exchange</h2>
@@ -192,8 +204,8 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
               </div>
             ) : (
               <>
-                <p className="mt-1 text-sm text-slate-500">No trade-in. Add one to reduce the customer&apos;s cost to change.</p>
-                <AddTradeIn dealId={d.id} />
+                <p className="mt-1 text-sm text-slate-500">No trade-in. Add the vehicle allowance and any lender settlement.</p>
+                {canWork && !closed && <AddTradeIn dealId={d.id} />}
               </>
             )}
           </section>
@@ -209,17 +221,18 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
                 </div>
               ))}
             </div>
-            <AddPayment dealId={d.id} />
+            {canPay && !closed && <AddPayment dealId={d.id} />}
           </section>
 
-          <DealAddons dealId={d.id} addons={d.addons} currency={d.currency} showProfit={showProfit} />
+          {canWork && !closed && <DealAddons dealId={d.id} addons={d.addons} currency={d.currency} showProfit={showProfit} />}
 
-          <DealDocuments dealId={d.id} docs={d.documents} />
+          <Link href="/business/document-settings" className="text-sm text-sky-300">Company document settings →</Link>
+          <DealDocuments dealId={d.id} docs={d.documents} status={d.status} />
         </div>
 
         {/* Right: KYC + timeline */}
         <div className="space-y-4">
-          <RequiredDocs dealId={d.id} docs={d.requiredDocs} />
+          {canWork && !closed && <RequiredDocs dealId={d.id} docs={d.requiredDocs} />}
           <section className="studio-surface p-4">
             <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Event log</h2>
             <ol className="mt-3 space-y-3">
@@ -229,6 +242,7 @@ export default async function DealDetail({ params }: { params: Promise<{ id: str
                   <span className="absolute left-0 top-1.5 h-2 w-2 rounded-full bg-gradient-to-br from-sky-400 to-violet-500" />
                   {i < d.events.length - 1 && <span className="absolute left-[3px] top-3.5 h-full w-px bg-white/10" />}
                   <p className="text-sm text-slate-200">{e.detail}</p>
+                  {e.audit!=null&&<details className="mt-1 text-xs text-slate-400"><summary className="cursor-pointer">Recorded details</summary><pre className="mt-2 overflow-x-auto whitespace-pre-wrap">{JSON.stringify(e.audit,null,2)}</pre></details>}
                   <p className="text-[11px] text-slate-500">{fmtEvent(e.at)} · {e.by}</p>
                 </li>
               ))}

@@ -5,6 +5,7 @@ import { logout } from "@/app/(auth)/actions";
 import { can, hasModule } from "@/lib/types";
 import { isDemoMode } from "@/lib/demo";
 import { CURRENT_TERMS_VERSION } from "@/lib/terms";
+import { commercialPermission } from "@/lib/commercial-server";
 import { SideNav } from "./side-nav";
 
 export default async function AppLayout({
@@ -38,6 +39,7 @@ export default async function AppLayout({
 
         <SideNav
           canBusiness={can.viewFinancials(session.role)}
+          canPurchase={await commercialPermission("purchase")}
           canDeals={can.manageDeals(session.role)}
           sales={sales}
           marketing={marketing}

@@ -27,6 +27,9 @@ See [delivery plan and stage log](docs/DELIVERY.md) for shipped scope, remaining
    already applied files or run migrations on production without a backup and staging check.
    Stage 1 adds `037_crm_foundation.sql`, `038_rpc_authorization.sql` and
    `039_public_data_boundaries.sql`.
+   Stage 2 adds `040_commercial_workflow.sql` and `041_vehicle_details_payables.sql`.
+   Configure company details under `/business/document-settings` before issuing documents.
+   Review the staging prerequisites and known workflow limits in `docs/DELIVERY.md`.
 3. Copy `.env.example` to `.env.local` and fill in your project keys.
 4. Install & run:
 

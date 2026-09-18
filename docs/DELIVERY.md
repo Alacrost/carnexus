@@ -21,7 +21,7 @@ Plan each bounded slice before code; reuse Next.js/Supabase and native controls;
 | Stage | Scope | State |
 |---|---|---|
 | 1 | CRM lead workflow, follow-up, immutable audit, scoped CRM roles, lead reporting; immediate RPC authorisation fixes | Implemented and tested locally; staging pending |
-| 2 | Transactional sales/purchases/payments, financial consistency, document numbers, role alignment across all legacy modules; remaining P0 audit findings | Planned |
+| 2 | Transactional sales/purchases/payments, trade-in settlements, document numbers, vehicle specifications | Core implemented and tested locally; staging and reversal workflows pending |
 | 3 | Complete CRM operations: tasks/appointments linked to contacts/deals, team invitations, assignment rules, customer history, exports/retention | Planned |
 | 4 | Website themes/domains/stock photos/intake; focused DoneDeal and promotions UX | Planned |
 | 5 | Email/DoneDeal/Meta Ads lead adapters, deduplication, inbox; AI review then explicitly configurable automation | Planned; provider credentials/access required |
@@ -65,3 +65,30 @@ Local implementation uses `feat/crm-foundation`. Remote Supabase project/deploym
 ### Next bounded slice
 
 Stage 2 must first make sale creation/completion/payments atomic and align role enforcement, then verify stock reservation, financial totals, document numbering and audit attribution together. Remaining audit P0s and global role coverage must be closed before production onboarding. Stage 1 is a foundation, not a claim that the complete CRM or all three commercial products are finished.
+
+## Stage 2 delivery — 2026-09-18
+
+Planned in [sales-purchases-stage2.md](specs/sales-purchases-stage2.md) before implementation. Reused existing tables and UI. Replaced separate commercial writes with one transactional command, rather than adding a second sales system. No new dependency.
+
+- A sale locks its vehicle, reserves stock, allocates Deal/SO numbers, and records an initial deposit atomically. A second active deal on the same car is rejected. Price overrides require an explicit button, permission, reason and current version.
+- Multiple receipts/refunds and lender payouts use server-side balances, cents validation, tenant checks and replay protection. Pending finance is separate from received funds. Negative trade equity is retained. Purchase and trade-in create stock, cost records and numbered POs together.
+- Purchase balances separate vendor and lender obligations, including partial settlements and due dates. A trade-in PO remains outstanding independently of the completed customer sale. A trade-in cannot itself be sold before the originating sale completes.
+- Completion requires an agreed deal, a current agreement, zero customer balance and receipt of expected finance. It marks stock sold, updates the commercial record, advances a linked lead and issues the invoice in one transaction.
+- Agreements/invoices preserve snapshots, document numbers, SO/deal references, customer and finance-company recipient, vehicle, line items, receipts, trade-in, company address/registration and configured terms. Price/finance/add-on changes require a new agreement. Customer address and seller VAT registration are checked before taxable invoice issue. Margin VAT on the vehicle is not separately disclosed; add-ons have explicit tax rates.
+- Purchase price is revealed on hover/focus/tap only after server-side permission. Custom CRM profiles now include commercial price, cost, purchase and payment permissions. This is not a global permission redesign of marketing/billing.
+- Vehicle records include VIN, trim, body, colour, engine capacity, keys, previous owners, logbook, service status/dates, maintenance entries, equipment, condition, NCT and warranty. Changes carry the authenticated actor in the audit.
+- New migrations: `040_commercial_workflow.sql`, `041_vehicle_details_payables.sql`. No remote migration or deployment performed.
+
+### Checks
+
+`npm test`, TypeScript and production build passed. Tests apply all 41 migrations and cover atomic rollback, tenant/role/cost restrictions, fixed vehicle, duplicate submissions, overpayment, refunds, negative equity, vendor/lender splits, finance approval, agreement/completion/invoice guards, immutable records and maintenance history. Browser preview verified the locked sale vehicle, explicit price editor, finance/payment panels, vehicle details and document settings. This is not a substitute for authenticated Supabase staging tests.
+
+Full lint now has **7 pre-existing marketing errors and 1 inventory warning**; the changed commercial screens have no reported lint findings. Node's native TypeScript test loader emits a harmless module-type warning.
+
+### Remaining before production
+
+- Connect a staging Supabase project; review historic duplicate/open deals, price/stock mismatches and old payment/trade-allowance entries before rollout. Existing records are retained, not silently reinterpreted or deleted.
+- Reviewed trade-in cancellation/reversal and credit-note/refund flows after invoice issue. Closed deals and invoices are deliberately protected; a deal with a trade-in cannot currently be cancelled through the ordinary cancel button.
+- Bank reconciliation, actual transfers, lender APIs and dealer floorplan borrowing are not implemented. Finance approval/receipt/settlement are staff-entered records.
+- Full permission alignment of remaining legacy modules, remaining audit P0s, file evidence for maintenance/agreements, electronic signatures and advanced tax cases remain separate work. New document terms are configurable text, not automatically approved legal terms.
+- Document rendering reference: [Revenue — VAT invoice information](https://www.revenue.ie/en/vat/vat-records-invoices-credit-notes/invoices/information-required-vat-invoice.aspx); [Revenue — margin scheme](https://www.revenue.ie/en/vat/vat-on-goods/schemes/margin-scheme/index.aspx). No claim of comprehensive tax certification.
