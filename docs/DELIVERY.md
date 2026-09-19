@@ -43,7 +43,7 @@ Create lead + contact atomically; assign only active same-dealer sales staff; st
 
 ## Environment
 
-Local implementation uses `feat/crm-foundation`. Remote Supabase project/deployment not provided. Production remains unverified until migrations and two-tenant/role checks run in a configured staging project. Existing audit remains the baseline for unresolved security and commercial issues.
+Local implementation uses `feat/crm-foundation`. The Supabase project `wrpambhxyrcehefxpyli` is linked to the repository and has migrations 001–041. The app still needs its local public URL/key configuration and authenticated browser acceptance checks before this environment is considered ready for operational use. Existing audit remains the baseline for unresolved security and commercial issues.
 
 ## Stage 1 delivery — 2026-09-17
 
@@ -92,3 +92,36 @@ Full lint now has **7 pre-existing marketing errors and 1 inventory warning**; t
 - Bank reconciliation, actual transfers, lender APIs and dealer floorplan borrowing are not implemented. Finance approval/receipt/settlement are staff-entered records.
 - Full permission alignment of remaining legacy modules, remaining audit P0s, file evidence for maintenance/agreements, electronic signatures and advanced tax cases remain separate work. New document terms are configurable text, not automatically approved legal terms.
 - Document rendering reference: [Revenue — VAT invoice information](https://www.revenue.ie/en/vat/vat-records-invoices-credit-notes/invoices/information-required-vat-invoice.aspx); [Revenue — margin scheme](https://www.revenue.ie/en/vat/vat-on-goods/schemes/margin-scheme/index.aspx). No claim of comprehensive tax certification.
+
+## Supabase activation — 2026-09-19
+
+- Linked the repository to project `wrpambhxyrcehefxpyli` in the AutoNexus organization.
+- Confirmed the remote migration baseline was exactly 001–010, then applied 011–041 in order. A second dry run reports the remote database is up to date.
+- Existing records were preserved: 2 authenticated users, 1 dealer, 1 dealer member, 1 vehicle and 2 Storage objects were present before and after migration.
+- Post-migration checks found 42 public tables with RLS enabled on all 42. CRM commands, commercial commands, purchase balances and vehicle-detail storage are present.
+- The dashboard still displayed the organization/project as Free and showed no scheduled backups immediately after the reported plan upgrade. Recheck billing propagation and the first scheduled backup before onboarding live dealers.
+
+### TODO after activation
+
+#### P0 — finish environment acceptance
+
+- Add only `NEXT_PUBLIC_SUPABASE_URL` and the public publishable/anon key to `.env.local`; never add `service_role` to the browser app or Git.
+- Restart the local app without demo mode and test sign-in, dealer selection and RLS-backed pages with the existing owner account.
+- Run one authenticated end-to-end acceptance flow: create lead → follow-up → sale → agreement → finance/payment → invoice; also test purchase, trade-in and lender settlement.
+- Verify the plan upgrade appears on the AutoNexus organization and that scheduled backups are active. Capture the first successful backup before onboarding live dealers.
+- Add a second test user/dealer and rerun tenant isolation, sales cost visibility, price override and custom-role checks against the hosted database.
+
+#### P1 — complete the sales product
+
+- Implement reviewed cancellation/reversal, post-invoice credit notes and trade-in rollback rules.
+- Add CRM tasks/appointments, customer timeline, assignment rules, invitations and exports/retention controls.
+- Complete bank reconciliation and finance-provider operational states without representing staff-entered events as real bank/provider confirmation.
+- Finish permission alignment for legacy marketing, billing and inventory operations; close remaining audit P0 findings and legacy lint failures.
+
+#### P2 — expand the other products
+
+- Build selectable white-label website themes, custom colours/text/domains and shared-stock publishing.
+- Add DoneDeal-focused ad creation and promotion planning with configurable terms; integrate a stock/API feed only when provider access is available.
+- Add deduplicated lead intake adapters for website, email, DoneDeal and Meta Ads, followed later by Facebook/Instagram/WhatsApp messaging integrations.
+- Add configurable AI reply rules, tone, manual/automatic approval, escalation and auditable analytics for sales, marketing and stock.
+- Add platform administration for dealers, subscriptions, three-product entitlements, usage, support access and consolidated reporting.
