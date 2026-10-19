@@ -11,6 +11,9 @@ export interface DealNumbers {
   costs: number; // sum of cost line-items
   salePrice: number;
   vatScheme: VatScheme;
+  vatRate?: number; // percent, frozen on the acquisition
+  vrtAmount?: number; // acquisition cost; never a second customer charge
+  vrtVatTreatment?: "included" | "excluded";
 }
 
 export interface DealResult {
@@ -24,18 +27,18 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-export function vatOn(salePrice: number, grossMargin: number, scheme: VatScheme): number {
+export function vatOn(salePrice: number, grossMargin: number, scheme: VatScheme, rate = 23): number {
   if (salePrice <= 0) return 0;
-  const f = VAT_RATE / (1 + VAT_RATE); // extract VAT from a VAT-inclusive amount
+  const f = rate / (100 + rate); // extract VAT from a VAT-inclusive amount
   if (scheme === "standard") return round2(salePrice * f);
   if (scheme === "margin") return round2(Math.max(0, grossMargin) * f);
   return 0;
 }
 
 export function computeDeal(d: DealNumbers): DealResult {
-  const totalCost = round2((d.purchasePrice || 0) + (d.costs || 0));
+  const totalCost = round2((d.purchasePrice || 0) + (d.costs || 0) + (d.vrtAmount || 0));
   const grossMargin = round2((d.salePrice || 0) - totalCost);
-  const vat = vatOn(d.salePrice || 0, (d.salePrice || 0) - (d.purchasePrice || 0), d.vatScheme);
+  const vat = vatOn((d.salePrice || 0) - (d.vrtVatTreatment === "excluded" ? d.vrtAmount || 0 : 0), (d.salePrice || 0) - (d.purchasePrice || 0), d.vatScheme, d.vatRate);
   return { totalCost, grossMargin, vat, netProfit: round2(grossMargin - vat) };
 }
 

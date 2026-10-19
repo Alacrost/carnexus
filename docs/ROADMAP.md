@@ -1,5 +1,7 @@
 # Autonexus — Staged Roadmap
 
+> Historical product roadmap. For the current implemented/pending checklist, use [TODO.md](./TODO.md); for delivery evidence, use [DELIVERY.md](./DELIVERY.md).
+
 The product is built in stages. Each stage ships value on its own and the architecture
 (multi-tenant, modular monolith) is designed so modules can be added without rewrites.
 

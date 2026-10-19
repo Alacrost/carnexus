@@ -243,17 +243,17 @@ export function CampaignComposer({
   const [loadedImg, setLoadedImg] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    setBaseUrl(vehicle?.coverUrl ?? null);
-    setBasePath(vehicle?.coverPath ?? null);
-    setBaseBucket("vehicle-photos");
+    const reset = window.setTimeout(() => {
+      setBaseUrl(vehicle?.coverUrl ?? null);
+      setBasePath(vehicle?.coverPath ?? null);
+      setBaseBucket("vehicle-photos");
+    }, 0);
+    return () => window.clearTimeout(reset);
   }, [vehicle]);
 
   // Load base image for the canvas (CORS so export isn't tainted).
   useEffect(() => {
-    if (!baseUrl) {
-      setLoadedImg(null);
-      return;
-    }
+    if (!baseUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = baseUrl;
@@ -293,23 +293,29 @@ export function CampaignComposer({
     Record<string, { title: string; body: string; hashtags: string }>
   >({});
   useEffect(() => {
-    if (genState.result) {
+    if (!genState.result) return;
+    const seed = window.setTimeout(() => {
       const next: typeof copy = {};
-      for (const c of genState.result.channels) {
+      for (const c of genState.result!.channels) {
         next[c.channel] = { title: c.title, body: c.body, hashtags: c.hashtags };
       }
       setCopy(next);
-    }
+    }, 0);
+    return () => window.clearTimeout(seed);
   }, [genState.result]);
 
   // Apply AI image result + credit balance.
   useEffect(() => {
-    if (enhState.remaining != null) setCreditsLeft(enhState.remaining);
-    if (enhState.url) {
-      setBaseUrl(enhState.url);
-      setBasePath(null); // enhanced output isn't re-editable by path
-      setBaseBucket("brand-assets");
-    }
+    if (enhState.remaining == null && !enhState.url) return;
+    const apply = window.setTimeout(() => {
+      if (enhState.remaining != null) setCreditsLeft(enhState.remaining);
+      if (enhState.url) {
+        setBaseUrl(enhState.url);
+        setBasePath(null); // enhanced output isn't re-editable by path
+        setBaseBucket("brand-assets");
+      }
+    }, 0);
+    return () => window.clearTimeout(apply);
   }, [enhState]);
 
   const headline = angle || genState.result?.vehicleName || vehicle?.label || "";
@@ -322,14 +328,14 @@ export function CampaignComposer({
     for (const c of genState.result.channels) {
       const canvas = canvasRefs.current[c.channel];
       if (canvas) {
-        drawCanvas(canvas, CHANNEL_META[c.channel as Channel].size, loadedImg, {
+        drawCanvas(canvas, CHANNEL_META[c.channel as Channel].size, loadedImg?.src === baseUrl ? loadedImg : null, {
           headline,
           price: priceText,
           dealer: dealerName,
         });
       }
     }
-  }, [genState.result, loadedImg, headline, priceText, dealerName]);
+  }, [genState.result, loadedImg, baseUrl, headline, priceText, dealerName]);
 
   function download(channel: string) {
     const canvas = canvasRefs.current[channel];

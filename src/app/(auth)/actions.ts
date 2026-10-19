@@ -47,7 +47,12 @@ export async function login(
 
   const next = formData.get("next");
   const safeNext =
-    typeof next === "string" && /^\/[a-zA-Z0-9/_-]*$/.test(next)
+    typeof next === "string" &&
+    /^\/(?!\/)[a-zA-Z0-9/_-]*(?:\?[^\\#]*)?$/.test(next) &&
+    !Array.from(next).some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127;
+    })
       ? next
       : "/dashboard";
   redirect(safeNext);
@@ -81,15 +86,36 @@ export async function signup(
   const supabase = await createClient();
   const { fullName, dealerName, email, password } = parsed.data;
 
-  const { error: signUpError } = await supabase.auth.signUp({
+  // Use a configured origin, never an untrusted request Host/Origin header.
+  let confirmationUrl: string;
+  try {
+    const site = new URL(process.env.AUTH_SITE_URL ?? "");
+    if (
+      (site.protocol !== "https:" &&
+        !(process.env.NODE_ENV !== "production" &&
+          site.protocol === "http:" && site.hostname === "localhost")) ||
+      site.username || site.password || site.pathname !== "/" || site.search || site.hash
+    ) throw new Error("Invalid Auth site URL");
+    confirmationUrl = new URL("/auth/callback", site).href;
+  } catch {
+    return { error: "Account registration is not configured yet. Please contact support." };
+  }
+
+  const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: confirmationUrl,
+    },
   });
 
   if (signUpError) {
     return { error: "Could not create the account. Try a different email." };
   }
+
+  // Confirmed accounts have a session; otherwise onboarding follows email confirmation.
+  if (!data.session) redirect("/login?message=confirm-email");
 
   // Create the dealer + owner membership atomically (security definer RPC).
   const { error: rpcError } = await supabase.rpc("create_dealer_with_owner", {
@@ -98,8 +124,7 @@ export async function signup(
   });
 
   if (rpcError) {
-    // Email confirmation may be required — no session yet. Dealer is created on onboarding.
-    redirect("/login?message=confirm-email");
+    redirect("/onboarding");
   }
 
   redirect("/dashboard");

@@ -33,11 +33,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     names = new Map((team.data ?? []).map((m: {id:string;name:string}) => [m.id,m.name]));
   }
   const link = (next: number) => "/leads?" + new URLSearchParams({q,stage,page:String(next),mine:mine?"1":"",overdue:overdue?"1":""});
+  const exportHref = "/leads/export?" + new URLSearchParams({type:"leads",q,stage,mine:mine?"true":"false",overdue:overdue?"true":"false"});
   return <div className="space-y-6">
     <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs uppercase tracking-[.2em] text-sky-400">Sales workspace</p><h1 className="mt-2 text-3xl font-semibold text-gradient">Every enquiry. A clear next step.</h1><p className="mt-2 text-slate-400">{count} matching leads · ownership, follow-up and history in one place.</p></div>
       {ctx.permissions.includes("work") && <Link href="/leads/new" className="btn-gradient">New lead</Link>}
     </header>
-    <nav className="flex flex-wrap gap-5 text-sm text-sky-300"><Link href="/leads/viewings">Viewings</Link>{ctx.permissions.includes("report") && <Link href="/leads/reports">Pipeline reports</Link>}{ctx.session.role === "owner" && <Link href="/leads/team">CRM profiles & team</Link>}<Link href="/business/deals">Deals</Link></nav>
+    <nav className="flex flex-wrap gap-5 text-sm text-sky-300"><Link href="/leads/tasks">Tasks</Link><Link href="/leads/viewings">Appointments</Link>{ctx.permissions.includes("report") && <><Link href="/leads/reports">Pipeline reports</Link><Link href={exportHref}>Export filtered CSV</Link></>}{ctx.session.role === "owner" && <Link href="/leads/team">CRM profiles & team</Link>}<Link href="/business/deals">Deals</Link></nav>
     {!ctx.supabase && <p className="rounded-xl border border-amber-400/20 p-3 text-sm text-amber-200">Sample pipeline — connect Supabase to work with real leads.</p>}
     <form className="studio-surface flex flex-wrap items-end gap-4 p-4">
       <label className="min-w-52 flex-1 text-xs text-slate-400">Search enquiry title<input name="q" defaultValue={q} maxLength={120} className="studio-input mt-2" placeholder="Vehicle or enquiry…" /></label>

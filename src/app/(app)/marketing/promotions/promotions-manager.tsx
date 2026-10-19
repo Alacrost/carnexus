@@ -91,7 +91,9 @@ export function PromotionsManager({
 
   // Close the popup once a save succeeds.
   useEffect(() => {
-    if (state.saved) setOpen(false);
+    if (!state.saved) return;
+    const close = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(close);
   }, [state.saved]);
 
   const active = promotions.filter((p) => p.status === "active");

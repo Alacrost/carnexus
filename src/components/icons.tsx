@@ -80,6 +80,15 @@ export function LeadsIcon(p: IconProps) {
   );
 }
 
+export function MessageIcon(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M4 5.5h16v11H9l-4.5 3v-3H4Z" />
+      <path d="M8 9h8M8 12.5h5" />
+    </Icon>
+  );
+}
+
 export function SettingsIcon(p: IconProps) {
   return (
     <Icon {...p}>
@@ -226,4 +235,28 @@ export function ArrowRightIcon(p: IconProps) {
       <path d="M16 12H5" />
     </Icon>
   );
+}
+
+export function SearchIcon(p: IconProps) {
+  return <Icon {...p}><circle cx="10.7" cy="10.7" r="6.7" /><path d="m15.6 15.6 5 5" /></Icon>;
+}
+
+export function HoldIcon(p: IconProps) {
+  return <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M9.4 8.5v7M14.6 8.5v7" /></Icon>;
+}
+
+export function PrintIcon(p: IconProps) {
+  return <Icon {...p}><path d="M6 8V3.5h12V8M6 17H4a1 1 0 0 1-1-1V10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2" /><path d="M6 14h12v7H6zM17.5 11h.01" /></Icon>;
+}
+
+export function TagIcon(p: IconProps) {
+  return <Icon {...p}><path d="M3.5 5.5h10l7 7-8 8-9-9Z" /><circle cx="8" cy="9" r="1.3" /></Icon>;
+}
+
+export function CalendarIcon(p: IconProps) {
+  return <Icon {...p}><rect x="3" y="5.5" width="18" height="15" rx="1.5" /><path d="M7 3v5M17 3v5M3 10h18M8 14h3M8 17h6" /></Icon>;
+}
+
+export function ToolsIcon(p: IconProps) {
+  return <Icon {...p}><path d="m4 20 8.5-8.5M9.5 6.5l8 8M14 4l1.5-1.5 6 6L20 10M4.5 5.5l3 3" /><path d="M3 18.5 5.5 21M17 13l4 4-4 4-4-4" /></Icon>;
 }

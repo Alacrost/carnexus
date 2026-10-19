@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EntityLink, vehicleReference } from "@/components/entity-link";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode, demoVehicles, demoDeals, demoCosts } from "@/lib/demo";
@@ -46,19 +47,19 @@ export default async function BusinessPage() {
     );
   }
 
-  interface V { id: string; make: string; model: string; year: number; status: string; registration?: string | null }
+  interface V { id: string; vehicle_no?: number | null; make: string; model: string; year: number; status: string; registration?: string | null }
   let vehicles: V[] = [];
   let deals: DealRow[] = [];
   let costs: { vehicle_id: string; amount: number }[] = [];
 
   if (isDemoMode()) {
-    vehicles = demoVehicles as V[];
+    vehicles = demoVehicles.map((vehicle,index)=>({...vehicle,vehicle_no:index+1})) as V[];
     deals = demoDeals as DealRow[];
     costs = demoCosts;
   } else {
     const supabase = await createClient();
     const [{ data: v }, { data: d }, { data: c }] = await Promise.all([
-      supabase.from("vehicles").select("id, make, model, year, status, registration").eq("dealer_id", session.dealer.id).order("created_at", { ascending: false }),
+      supabase.from("vehicles").select("id, vehicle_no, make, model, year, status, registration").eq("dealer_id", session.dealer.id).order("created_at", { ascending: false }),
       supabase.from("vehicle_deals").select("vehicle_id, purchase_price, sale_price, vat_scheme, sale_status, deposit_amount").eq("dealer_id", session.dealer.id),
       supabase.from("vehicle_costs").select("vehicle_id, amount").eq("dealer_id", session.dealer.id),
     ]);
@@ -126,7 +127,7 @@ export default async function BusinessPage() {
           </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             {depositPending.map((r) => (
-              <Link key={r.v.id} href={`/business/${r.v.id}`} className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-amber-200 hover:bg-amber-400/20">
+              <Link key={r.v.id} href={`/inventory/${r.v.id}`} className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-amber-200 hover:bg-amber-400/20">
                 {r.v.year} {r.v.make} {r.v.model} →
               </Link>
             ))}
@@ -150,6 +151,7 @@ export default async function BusinessPage() {
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
               <th className="p-3">Vehicle</th>
+              <th className="p-3">Plate</th>
               <th className="p-3">Status</th>
               <th className="p-3 text-right">Bought</th>
               <th className="p-3 text-right">Sold</th>
@@ -162,11 +164,10 @@ export default async function BusinessPage() {
             {rows.map((r) => (
               <tr key={r.v.id} className="border-t border-white/5">
                 <td className="p-3">
-                  <span className="text-slate-100">{r.v.year} {r.v.make} {r.v.model}</span>
-                  {r.v.registration && (
-                    <span className="ml-2 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[11px] text-slate-400">{r.v.registration}</span>
-                  )}
+                  <EntityLink kind="vehicle" id={r.v.id} reference={vehicleReference(r.v.vehicle_no)} href={`/inventory/${r.v.id}`} />
+                  <span className="ml-2 text-slate-100">{r.v.year} {r.v.make} {r.v.model}</span>
                 </td>
+                <td className="p-3 font-mono text-xs font-semibold text-slate-700">{r.v.registration??"—"}</td>
                 <td className="p-3">
                   <span className={`rounded-full border px-2 py-0.5 text-[11px] ${STATUS_STYLES[r.deal?.sale_status ?? "none"]}`}>
                     {STATUS_LABELS[r.deal?.sale_status ?? "none"]}
@@ -177,8 +178,8 @@ export default async function BusinessPage() {
                 <td className="p-3 text-right tabular-nums text-slate-300">{r.fin ? eur(r.fin.grossMargin) : "—"}</td>
                 <td className={`p-3 text-right tabular-nums ${r.fin && r.fin.netProfit < 0 ? "text-rose-400" : "text-emerald-300"}`}>{r.fin ? eur(r.fin.netProfit) : "—"}</td>
                 <td className="p-3 text-right">
-                  <Link href={`/business/${r.v.id}`} className="text-xs font-medium text-sky-400 hover:text-sky-300">
-                    {r.deal ? "Open" : "Add deal"}
+                  <Link href={`/inventory/${r.v.id}`} className="text-xs font-medium text-sky-400 hover:text-sky-300">
+                    Vehicle details
                   </Link>
                 </td>
               </tr>

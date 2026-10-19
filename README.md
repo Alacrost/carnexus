@@ -17,6 +17,7 @@ See [delivery plan and stage log](docs/DELIVERY.md) for shipped scope, remaining
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Staged build plan (Stage 0 → 5) |
 | [docs/SECURITY.md](docs/SECURITY.md) | **Binding** security & multi-tenancy rules |
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Database schema + ERD |
+| [Dealer operations review — 2026-10-12](docs/specs/dealer-operations-review-2026-10-12.md) | Current persistence findings, test-environment transition and commercial completion plan |
 | [docs/LANDING_PAGE.md](docs/LANDING_PAGE.md) | Sales page copy & playbook |
 
 ## Setup
@@ -48,9 +49,11 @@ Run `npm run typecheck`, `npm run lint` and `npm run build` before release. Buil
 Google Fonts and needs network access. Existing lint findings and unresolved audit P0s
 are tracked in `docs/DELIVERY.md`; a build alone does not certify production readiness.
 
-For a local UI preview set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local`; never treat preview
-success as a persisted operation. Set it back to false when connecting staging. No service-role
-key is needed by the app's user-facing paths.
+For local development set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local`. Deal and PO flows
+use a persistent local database; other demo modules may still use static fixtures. See
+[local demo persistence](docs/specs/local-demo-persistence.md) for exact coverage. Local
+success does not verify hosted Auth, grants or Storage. Set the flag to false only after
+configuring the intended staging project. No service-role key is needed by user-facing paths.
 
 ## Auth model (Stage 0)
 

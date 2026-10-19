@@ -11,13 +11,14 @@ export default async function InventoryPage() {
 
   let vehicles: VehicleRow[];
   if (isDemoMode()) {
-    vehicles = demoVehicles as VehicleRow[];
+    vehicles = demoVehicles.map((vehicle, index) => ({ ...vehicle, vehicle_no: index + 1 })) as VehicleRow[];
   } else {
     const supabase = await createClient();
     const { data } = await supabase
       .from("vehicles")
-      .select("id, make, model, year, km, fuel, transmission, sale_price, status, registration, stock_class")
+      .select("id, vehicle_no, make, model, year, km, fuel, transmission, sale_price, status, registration, stock_class, originating_po_id, provenance_status")
       .eq("dealer_id", session.dealer.id)
+      .neq("status","returned_to_customer")
       .order("created_at", { ascending: false });
     vehicles = (data ?? []) as VehicleRow[];
   }
@@ -36,14 +37,16 @@ export default async function InventoryPage() {
         </div>
         {canManage && (
           <Link
-            href="/inventory/new"
+            href="/business/purchases/new"
             className="rounded-xl border border-sky-400/30 bg-gradient-to-b from-sky-500 to-sky-600 px-4 py-2 text-sm font-medium text-white shadow-[0_10px_30px_-12px_var(--glow)] transition hover:-translate-y-0.5 hover:brightness-110"
           >
-            + Add vehicle
+            + Acquire vehicle
           </Link>
         )}
       </div>
 
+      <div className="mt-5 mb-4"><Link href="/inventory/preparation" className="text-sm text-sky-300">Open preparation queue →</Link></div>
+      <p className="mb-4 max-w-3xl text-xs text-slate-500">Vehicles enter stock only through a Purchase Order or trade-in. “Legacy review” means this older record has no single evidenced originating PO and has not been assigned invented purchase data.</p>
       <InventoryTable vehicles={vehicles} canManage={canManage} />
     </div>
   );

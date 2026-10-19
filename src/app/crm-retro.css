@@ -1,0 +1,233 @@
+/* Operational CRM: paper records, ink actions and restrained folder navigation.
+   The route-aware shell leaves Marketing Studio and Dealer Website unchanged. */
+.crm-skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 0.5rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  border: 2px solid #203449;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  background: #fffdf7;
+  color: #203449;
+}
+.crm-skip-link:focus { transform: none; }
+
+@media screen {
+  .crm-shell.crm-retro {
+    --crm-paper: #fffdf7;
+    --crm-ink: #203449;
+    --crm-dark-surface: #303238;
+    --crm-dark-hover: #3b3d43;
+    --crm-line: #c9c8bc;
+    --crm-rule: var(--crm-line);
+    --ink-900: #e9e5dc;
+    --ink-800: #f3f0e8;
+    --ink-700: #ddd9ce;
+    --panel: var(--crm-paper);
+    --panel-2: #f3f0e8;
+    --line: #d3cfc3;
+    --line-strong: #a5aaac;
+    --section-ink: #eeeae0;
+    --section-text: var(--crm-ink);
+    --section-muted: #5b6470;
+    --text: #24313b;
+    --text-muted: #5b6470;
+    --text-faint: #65707a;
+    --accent: var(--crm-ink);
+    --accent-2: #345773;
+    --accent-3: #466b82;
+    --glow: transparent;
+    --background: #f3f0e8;
+    --foreground: #24313b;
+    --color-sky-100: #294b65;
+    --color-sky-200: #294b65;
+    --color-sky-300: #294b65;
+    --color-sky-400: #294b65;
+    --color-sky-500: #294b65;
+    --color-sky-600: #203449;
+    --color-slate-400: #59636e;
+    --color-slate-500: #5b6470;
+    background: var(--background);
+    font-family: var(--font-geist-sans), Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .crm-retro .crm-sidebar,
+  .crm-retro .crm-mobile-menu {
+    background: #e9e5dc;
+    border-color: #c9c8bc;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .crm-retro .crm-sidebar { width: 254px; }
+  .crm-retro .crm-navigation { padding: 0.75rem; }
+  .crm-retro .crm-nav-group + .crm-nav-group { margin-top: 0.75rem; }
+  .crm-retro .crm-nav-heading {
+    color: #58616a;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+  .crm-retro .crm-nav-link {
+    min-height: 38px;
+    gap: 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 4px 4px 2px 2px;
+    color: #334656;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    box-shadow: none;
+  }
+  .crm-retro .crm-nav-link svg { flex-shrink: 0; color: #63717b; }
+  .crm-retro .crm-nav-link:hover { background: #f5f2ea; color: #203449; }
+  .crm-retro .crm-nav-link[aria-current="page"] {
+    border-color: #b7b8ae;
+    border-left: 3px solid #203449;
+    padding-left: calc(0.75rem - 2px);
+    background: #fffdf7;
+    color: #203449;
+    font-weight: 700;
+    box-shadow: 0 1px 1px rgb(32 52 73 / 5%);
+  }
+  .crm-retro .crm-nav-link[aria-current="page"] svg { color: #203449; }
+  .crm-retro .crm-nav-link[aria-current="page"] > span:last-child:not(:first-of-type) {
+    background: var(--crm-dark-surface);
+    color: #fff;
+  }
+  .crm-retro :is(a, button, summary, input, select, textarea):focus-visible {
+    outline: 2px solid #315c7a;
+    outline-offset: 3px;
+  }
+  .crm-retro .crm-main:focus { outline: none; }
+  .crm-retro .studio-surface {
+    background: var(--crm-paper);
+    border-color: var(--crm-line);
+    border-radius: 4px;
+    box-shadow: 0 2px 3px rgb(32 52 73 / 4%);
+  }
+  .crm-retro .studio-interactive:hover {
+    transform: none;
+    border-color: #8d9ba2;
+    box-shadow: 0 2px 3px rgb(32 52 73 / 6%);
+  }
+  .crm-retro .studio-input {
+    min-height: 38px;
+    background: #fffefa;
+    border-color: #aaaead;
+    border-radius: 3px;
+    color: #24313b;
+    box-shadow: inset 0 1px 2px rgb(32 52 73 / 3%);
+  }
+  .crm-retro .studio-input::placeholder { color: #69737a; }
+  .crm-retro .studio-input:hover { border-color: #778b99; }
+  .crm-retro .studio-input:focus {
+    background: #fff;
+    border-color: #315c7a;
+    box-shadow: 0 0 0 3px rgb(49 92 122 / 12%);
+  }
+  .crm-retro .btn-gradient {
+    border-color: var(--crm-dark-surface);
+    background: var(--crm-dark-surface);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 15%) inset;
+    color: #fff;
+    font-weight: 600;
+    min-height: 38px;
+  }
+  .crm-retro .btn-gradient:hover:not(:disabled) { background: var(--crm-dark-hover); transform: none; filter: none; }
+  .crm-retro .btn-outline {
+    border-color: #b1b7b7;
+    background: #fffdf7;
+    color: #203449;
+    min-height: 36px;
+  }
+  .crm-retro .btn-outline:hover:not(:disabled) { background: #f2efe6; border-color: #7b8a94; }
+  .crm-retro .btn-gradient:disabled,
+  .crm-retro .btn-outline:disabled { cursor: not-allowed; }
+
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) h2,
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .crm-section-header {
+    background: #eeeae0;
+    color: #203449;
+    border: 1px solid #cbc8bd;
+    border-left: 3px solid #203449;
+    border-radius: 3px 3px 0 0;
+    box-shadow: none;
+    letter-spacing: 0;
+    text-wrap: pretty;
+  }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .crm-section-header :is(h2, h3) {
+    background: none;
+    color: #203449;
+    border: 0;
+  }
+  .crm-retro .crm-section-header p { color: #5b6470; }
+  .crm-retro .crm-section-header .crm-step-number { color: #203449; border-color: #aaaead; }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) :is(section, fieldset) > :is(h3, legend) {
+    background: #f3f0e8;
+    border-color: #a5aaa8;
+    color: #203449;
+  }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .studio-surface thead { background: #eeeae0; }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .studio-surface thead :is(th, td) {
+    color: #344555;
+    border-color: #c9c8bc;
+  }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .studio-surface tbody tr:nth-child(even):not([class*="bg-"]) { background: #f7f5ef; }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) .studio-surface tbody tr:not([class*="bg-"]):hover { background: #edeff0; }
+  .crm-retro main:not(:has(.vehicle-print, .quote-print)) dl[class*="bg-"] { background: #f5f2e9; border-color: #c9c8bc; }
+  .crm-retro .entity-reference { background: #fffdf7; border-color: #b5bebf; color: #203449; }
+  .crm-retro .entity-reference:hover { background: var(--crm-dark-surface); border-color: var(--crm-dark-surface); color: #fff; transform: none; }
+  .crm-retro .deal-stepper .deal-step { background: #f3f0e8; border-color: #b9beb9; color: #344555; }
+  .crm-retro .deal-stepper .deal-step[aria-current="step"] { background: var(--crm-dark-surface) !important; border-color: var(--crm-dark-surface) !important; color: #fff; }
+  .crm-retro .deal-stepper .deal-step-number { background: #e1e5e5; color: #203449; }
+
+  /* Neutral charcoal for existing dark controls; paper panels and text stay intact. */
+  .crm-retro :is(.crm-sidebar, .crm-mobile-menu) [class~="bg-[#1b1b1a]"],
+  .crm-retro .crm-nav-link > [class~="bg-[#1c1c1e]"],
+  .crm-retro :is(a, button):is(
+    [class~="bg-[#1c1c1e]"],
+    [class~="bg-[#171717]"],
+    [class~="bg-[#181817]"],
+    [class~="bg-[#231e18]"],
+    [class~="bg-[#101010]"],
+    [class~="bg-black"]:not(:disabled)
+  ):not(.crm-nav-link) { background-color: var(--crm-dark-surface); }
+  .crm-retro :is(a, button):is(
+    [class~="border-[#1c1c1e]"][class~="bg-[#1c1c1e]"],
+    [class~="border-[#171717]"][class~="bg-[#171717]"],
+    [class~="border-[#181817]"][class~="bg-[#181817]"],
+    [class~="border-[#231e18]"][class~="bg-[#231e18]"],
+    [class~="border-black"][class~="bg-black"]:not(:disabled)
+  ):not(.crm-nav-link) { border-color: var(--crm-dark-surface); }
+  .crm-retro :is(a, button):is(
+    [class~="hover:bg-[#30302e]"],
+    [class~="hover:bg-[#353535]"],
+    [class~="hover:bg-[#343432]"],
+    [class~="hover:bg-[#40362c]"],
+    [class~="hover:bg-[#303030]"],
+    [class~="hover:bg-[#363636]"]
+  ):hover:not(:disabled):not(.crm-nav-link) { background-color: var(--crm-dark-hover); }
+  .crm-shell.crm-retro .trade-in-wizard button.text-white {
+    background: var(--crm-dark-surface);
+    border-color: var(--crm-dark-surface);
+  }
+  .crm-shell.crm-retro .trade-in-wizard button.text-white:hover:not(:disabled) { background: var(--crm-dark-hover); }
+  .crm-retro .deal-negotiation-highlight :is(.btn-gradient, .deal-edit-cta) {
+    background: var(--crm-dark-surface) !important;
+    border-color: var(--crm-dark-surface);
+  }
+  .crm-retro .deal-negotiation-highlight :is(.btn-gradient, .deal-edit-cta):hover:not(:disabled) { background: var(--crm-dark-hover) !important; }
+  .crm-retro [class*="bg-gradient"][class*="from-sky-"] {
+    background-color: var(--crm-dark-surface) !important;
+    border-color: var(--crm-dark-surface) !important;
+  }
+}
+
+@media screen and (max-width: 639px) {
+  .crm-retro .crm-main { padding: 1rem; }
+  .crm-retro .crm-nav-link { min-height: 44px; }
+}
+@media print { .crm-skip-link { display: none; } }

@@ -41,7 +41,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
       <p className="text-xs uppercase tracking-widest text-sky-400">{crmLabel(lead.stage)} · {crmLabel(lead.source)}</p>
       <h1 className="mt-2 text-3xl font-semibold">{lead.title}</h1>
       <p className="mt-2 text-slate-400">{contact?.name ?? "Contact"}{contact?.phone ? ` · ${contact.phone}` : ""}{contact?.email ? ` · ${contact.email}` : ""}</p>
-    </div><Link href={`/business/deals/new?leadId=${encodeURIComponent(id)}${lead.vehicle_id ? `&vehicleId=${encodeURIComponent(lead.vehicle_id)}` : ""}`} className="btn-gradient">Continue to deal</Link></header>
+    </div><div className="flex flex-wrap gap-2"><Link href={`/messages?contextType=lead&contextId=${id}&contextLabel=${encodeURIComponent(lead.title)}`} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10">Message team</Link><Link href={`/business/deals/new?leadId=${encodeURIComponent(id)}${lead.vehicle_id ? `&vehicleId=${encodeURIComponent(lead.vehicle_id)}` : ""}`} className="btn-gradient">Continue to deal</Link></div></header>
     {!ctx.supabase && <p className="text-amber-300">Preview — changes are not saved.</p>}
     {query.saved === "1" && <p role="status" className="text-emerald-300">Lead saved. The change is recorded below.</p>}
     {options.error && <p role="alert">{options.error}</p>}

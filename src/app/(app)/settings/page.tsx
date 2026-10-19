@@ -5,8 +5,10 @@ import { secretStorageEnabled } from "@/lib/crypto";
 import { can, hasModule } from "@/lib/types";
 import { CURRENCIES } from "@/lib/currency";
 import { IntegrationsForm, type IntegrationsValues } from "./integrations-form";
-import { setDealerCurrency } from "./actions";
+import { createDealerLocation, setDealerCurrency } from "./actions";
 import Link from "next/link";
+import {createSalesClient} from "@/lib/sales-client";
+import {FinancialTaxForm} from "./financial-tax-form";
 
 export default async function SettingsPage() {
   const session = await requireSession();
@@ -18,6 +20,8 @@ export default async function SettingsPage() {
     donedealConfigured: false,
   };
   let currency = "EUR";
+  let locations:{id:string;name:string;code:string|null;is_primary:boolean}[]=[];
+  let taxSettings:{defaultVatScheme:string;standardVatRate:number}|null=null;let taxLoadError=false;
 
   if (can.manageMembers(session.role)) {
     if (isDemoMode()) {
@@ -39,7 +43,13 @@ export default async function SettingsPage() {
         donedealConfigured: Boolean(data?.donedeal_api_key),
       };
       currency = dealer?.currency ?? "EUR";
+      const {data:locationRows}=await supabase.from("dealer_locations").select("id,name,code,is_primary").eq("dealer_id",session.dealer.id).eq("active",true).order("is_primary",{ascending:false}).order("name");locations=locationRows??[];
     }
+  }
+
+  if(can.manageMembers(session.role)){
+    const db=await createSalesClient();const result=await db.rpc("financial_tax_settings",{p_dealer:session.dealer.id});
+    taxSettings=result.data as {defaultVatScheme:string;standardVatRate:number}|null;taxLoadError=Boolean(result.error)||!taxSettings;
   }
 
   return (
@@ -83,6 +93,10 @@ export default async function SettingsPage() {
           </section>
         )}
 
+        {can.manageMembers(session.role)&&<section className="studio-surface p-5"><h2 className="font-medium text-slate-100">Stores &amp; locations</h2><p className="mt-2 text-sm text-slate-400">Locations belong to this dealership account and can be selected on Deals and reports.</p><div className="mt-3 space-y-1">{locations.map(location=><div key={location.id} className="flex justify-between rounded-lg border border-white/10 px-3 py-2 text-sm"><span>{location.name}{location.is_primary&&<small className="ml-2 text-sky-300">Primary</small>}</span><span className="font-mono text-xs text-slate-500">{location.code}</span></div>)}</div><form action={createDealerLocation} className="mt-3 grid gap-2 sm:grid-cols-[1fr_100px_auto]"><input name="name" required minLength={2} maxLength={120} placeholder="New location name" className="studio-input"/><input name="code" maxLength={20} placeholder="Code" className="studio-input"/><button className="btn-gradient">Add location</button></form></section>}
+
+        {can.manageMembers(session.role)&&<section className="studio-surface p-5"><h2 className="font-medium text-slate-100">Financial tax settings</h2>{taxLoadError||!taxSettings?<p role="alert" className="mt-3 text-sm text-rose-300">Financial tax defaults could not load. Check the database update and financial access.</p>:<FinancialTaxForm defaultVatScheme={taxSettings.defaultVatScheme} standardVatRate={Number(taxSettings.standardVatRate)}/>}</section>}
+
         {session.role === "owner" && (
           <section className="studio-surface p-5">
             <h2 className="font-medium text-slate-100">Products</h2>
@@ -107,10 +121,11 @@ export default async function SettingsPage() {
 
         <section className="studio-surface p-5">
           <h2 className="font-medium text-slate-100">Team</h2>
-          {session.role === "owner" && <Link href="/leads/team" className="mt-3 inline-block text-sm text-sky-300">CRM profiles & assignments →</Link>}
+          {can.manageMembers(session.role) && <Link href="/settings/team" className="mt-3 inline-block text-sm text-sky-300">Invitations & members →</Link>}
+          {session.role === "owner" && <Link href="/leads/team" className="ml-4 mt-3 inline-block text-sm text-violet-300">CRM profiles →</Link>}
           <p className="mt-2 text-sm text-slate-400">
             {can.manageMembers(session.role)
-              ? "Invite salespeople and admins. The invitation manager UI ships in Stage 1 — invitations already work via the secure API."
+              ? "Invite teammates, suspend access and manage roles through the audited team workflow."
               : "Only owners and admins can manage team members."}
           </p>
         </section>

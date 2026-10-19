@@ -1,3 +1,27 @@
+# REGRA PRIMORDIAL — Respeitar estritamente o pedido do usuário
+
+Instrução explícita do usuário, registrada em 23/09/2026:
+“Faça apenas o que eu pedir. Não alterar nada que não for pedido.”
+
+- Implementar somente o pedido atual e as alterações diretamente necessárias para atendê-lo.
+- Não aproveitar uma tarefa para fazer melhorias, refatorações ou correções adicionais não solicitadas.
+- Preservar UI, ações, rótulos e comportamentos fora da área explicitamente pedida.
+  Não substituir CTAs, reorganizar outras áreas nem adicionar funcionalidades por iniciativa própria.
+- Ideias que ampliem o escopo devem ser apresentadas como sugestões ao usuário e aguardar
+  sua decisão antes da implementação. Silêncio ou uma autorização antiga não equivalem a aprovação.
+- Decisões rotineiras diretamente necessárias dentro do escopo autorizado seguem autônomas;
+  esta regra não exige confirmação para cada detalhe de implementação.
+- Não alterar modo de demonstração, arquivos de ambiente, autenticação, permissões,
+  integrações, banco remoto ou configuração de execução quando isso não fizer parte do pedido.
+  Por exemplo: um pedido de design não autoriza desligar o modo de demonstração.
+- Pedidos anteriores de “continuar” ou “fazer tudo” não são autorização permanente
+  para ampliar o escopo de pedidos posteriores.
+- Se uma dependência exigir mudança fora do escopo, explicar a mudança concreta e
+  obter autorização antes de executá-la. Encontrar outro problema não autoriza corrigi-lo.
+- Pedidos de explicação ou diagnóstico autorizam inspeção, não alterações automáticas.
+- Preservar configurações e mudanças existentes do usuário. Ao concluir, informar
+  exatamente o que foi alterado e qualquer parte que dependa de nova autorização.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
@@ -62,3 +86,28 @@ Rules that make this real:
 Treat this as overriding any instinct to build a single "Generate" button that dumps a
 finished result. If in doubt, make the AI ask and suggest before it commits.
 
+<!-- BEGIN:autonexus-supervisor -->
+# Supervisão do time de desenvolvimento
+
+O usuário autorizou este chat como supervisor do Autonexus e o uso de subagentes
+especializados em front-end, back-end, banco de dados e backup, qualidade e testes,
+e infraestrutura e segurança, por tarefa.
+Esta autorização organiza a execução; não amplia o escopo de nenhum pedido.
+
+- O supervisor recebe o pedido, delimita o resultado, planeja dependências, distribui
+  responsabilidades e revisa a integração antes de entregar.
+- Seguir o processo e os contratos de delegação em `docs/TEAM_SUPERVISION.md`.
+- Acionar apenas os especialistas necessários. Trabalhos independentes podem ocorrer
+  em paralelo; alterações no mesmo arquivo devem ter um único responsável por vez.
+- Preservar alterações preexistentes, compartilhar contratos entre as áreas e comunicar
+  bloqueios ao supervisor. Não delegar autorização maior que a recebida do usuário.
+- Incluir em toda delegação os limites concretos da área pedida e o que deve ser preservado.
+  Todos os especialistas seguem a regra primordial de escopo; sugestões adicionais aguardam
+  decisão do usuário, inclusive quando partem do supervisor ou de outro agente.
+- Os agentes são acionados durante as tarefas; não são serviços permanentemente ativos.
+- Mostrar neste chat um quadro por especialista com tarefa, estado real e resultado;
+  incluir os cinco papéis, mesmo quando não acionados, e atualizar nas mudanças
+  relevantes e quando o usuário pedir o estado do time.
+- Esta configuração não autoriza aplicar migrações remotas, restaurar dados, configurar
+  backups, publicar ou alterar ambiente, demonstração, autenticação ou permissões.
+<!-- END:autonexus-supervisor -->

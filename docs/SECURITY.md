@@ -41,25 +41,36 @@ authenticated user (`auth.uid()`), so policies never recurse into `dealer_member
 
 Role is **per dealer**, stored in `dealer_members.role`.
 
-| Capability | Owner | Admin | Sales | Agency |
-|---|:-:|:-:|:-:|:-:|
-| Billing & plan | ✅ | ❌ | ❌ | ❌ |
-| Invite/remove members | ✅ | ✅ | ❌ | ❌ |
-| Dealer settings | ✅ | ✅ | ❌ | ❌ |
-| Vehicles: create/edit | ✅ | ✅ | ❌ | ❌ |
-| Vehicles: view | ✅ | ✅ | ✅ | ✅ |
-| Marketing module (creatives, posts, campaigns) | ✅ | ✅ | ❌ | ✅ |
-| Leads & customers: full | ✅ | ✅ | ✅ | ❌ |
-| Delete dealer | ✅ | ❌ | ❌ | ❌ |
-| Analytics (profit/margins) | ✅ | ✅ | ❌ | ❌ |
+| Capability / authoritative boundary | Owner | Admin | Sales (default) | Sales (custom profile) | Accountant | Agency |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| Billing, plan, delete dealer (`can` + dealer policy) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Invitations and member status (`team_command`) | ✅ | ✅, no owner/peer-admin changes | ❌ | ❌ | ❌ | ❌ |
+| CRM leads, tasks, appointments (`crm_allowed: read`) | ✅ | ✅ | ✅ | only with `read` | ❌ | ❌ |
+| CRM work (`crm_allowed: work`) | ✅ | ✅ | ✅ | only with `read` + `work` | ❌ | ❌ |
+| CRM assignment (`crm_allowed: assign`) | ✅ | ✅ | self only | only with `assign` | ❌ | ❌ |
+| CRM reports/exports (`crm_allowed: report`) | ✅ | ✅ | ✅ | only with `report` | ❌ | ❌ |
+| Customer/deal read (`commercial_allowed: read`) | ✅ | ✅ | ✅ | only with `read` | ✅ | ❌ |
+| Sales/deal work (`commercial_allowed: work/payment`) | ✅ | ✅ | ✅ | explicit permission | ✅ | ❌ |
+| Purchase/cost/margin (`commercial_allowed: purchase/cost`) | ✅ | ✅ | ❌ | explicit owner-granted permission | ✅ | ❌ |
+| Vehicles: create/edit (inventory RLS + server action) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Vehicles: public operational fields | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Preparation workflow (`preparation_allowed`) | ✅ | ✅ | assigned prep team only | assigned prep team only | assigned prep team only | assigned prep team only |
+| Marketing module + role policy | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Website/integration settings | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 - **`agency` role** = our in-office marketing team. Granted explicitly by the dealer
   (one-click, revocable anytime). Scope: marketing module + read-only vehicle data
   needed for ads. **Never** sees customer PII, buy prices, margins or billing.
   Every agency action is written to `audit_logs`.
-- Sales users see sale prices but **never buy prices or margins** (enforced via a
-  `vehicles_sales_view` or column-level checks in server code — buy_price is stripped
-  server-side for sales role).
+- Default sales users see sale prices but never purchase cost or margin. An owner may
+  deliberately grant `cost`/`purchase` in a custom CRM profile; the database predicate,
+  not a hidden UI control, is authoritative. Raw `vehicles.buy_price` is not granted to
+  authenticated clients; permitted cost is returned by scoped RPCs.
+- UI capability checks are presentation only. `crm_allowed`, `commercial_allowed`,
+  `preparation_allowed`, transactional commands, RLS and column grants enforce access.
+- `vehicle_deals` and `vehicle_costs` are legacy read-only reference models. New writes
+  must use the transactional Deal/PO commands so invoices, payments and audit history
+  cannot be bypassed.
 - **Platform super-admin** (us): flag in `auth.users.app_metadata.platform_admin`.
   Used only by the internal admin panel (Stage 5). Never granted to customers.
 
@@ -95,10 +106,11 @@ Role is **per dealer**, stored in `dealer_members.role`.
   (application-level key from Supabase Vault), never logged, never shown in lists,
   access restricted to owner/admin and audited.
 - **Consent**: `customers.gdpr_consent_at` recorded before marketing contact.
-- **Right to erasure / export**: customers are soft-deleted (`deleted_at`) and purged by
-  a scheduled job; export endpoint returns all data for a subject.
-- **Data retention**: leads and customer PII purged after a configurable period of
-  inactivity (default 24 months).
+- **Right to erasure / subject access**: customers support soft deletion. A complete
+  subject-access package and scheduled purge are still required before production; the
+  CRM CSV endpoint is an operational export and must not be represented as a GDPR export.
+- **Data retention**: a reviewed policy, configurable retention window and scheduled purge
+  job remain pending. No automatic purge is currently claimed.
 - **Processor agreements**: Supabase/OpenAI DPAs referenced in the privacy policy;
   no PII sent to AI models unless strictly needed (ad generation uses vehicle data only).
 

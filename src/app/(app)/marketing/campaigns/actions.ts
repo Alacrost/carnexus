@@ -262,7 +262,6 @@ export async function enhanceCampaignImage(
   const supabase = await createClient();
 
   // Spend credits first — fail closed on insufficient balance.
-  let remaining: number;
   const { data: spent, error: spendError } = await supabase.rpc("spend_ai_credits", {
     p_dealer_id: session.dealer.id,
     p_amount: IMAGE_OP_COST[op],
@@ -270,7 +269,7 @@ export async function enhanceCampaignImage(
   if (spendError || spent == null) {
     return { error: "Not enough credits for that. Top up to keep using AI images." };
   }
-  remaining = spent as number;
+  const remaining = spent as number;
 
   const { data: file, error: dlError } = await supabase.storage
     .from(parsed.data.bucket)

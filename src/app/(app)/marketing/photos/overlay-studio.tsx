@@ -343,7 +343,7 @@ export function OverlayStudio({
   const [cover, setCover] = useState<string | null>(null);
   const [items, setItems] = useState<OverlayItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [patterns, setPatterns] = useState<Pattern[]>(initialPatterns);
+  const [patterns, setPatterns] = useState<Pattern[]>(() => dealerId ? initialPatterns : loadLocalPatterns());
   const [patternName, setPatternName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -372,11 +372,6 @@ export function OverlayStudio({
   const stageRef = useRef<HTMLDivElement>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement>(null);
   const dragId = useRef<string | null>(null);
-
-  // Demo mode (no dealer): patterns live in localStorage.
-  useEffect(() => {
-    if (!dealerId) setPatterns(loadLocalPatterns());
-  }, [dealerId]);
 
   const persistLocal = useCallback((next: Pattern[]) => {
     setPatterns(next);

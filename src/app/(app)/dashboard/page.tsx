@@ -96,11 +96,11 @@ function Donut({ value, total }: { value: number; total: number }) {
     <svg viewBox="0 0 130 130" className="h-36 w-36 -rotate-90">
       <defs>
         <linearGradient id="donut" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#8b5cf6" />
+          <stop offset="0%" stopColor="#181817" />
+          <stop offset="100%" stopColor="#747470" />
         </linearGradient>
       </defs>
-      <circle cx="65" cy="65" r={r} fill="none" stroke="rgba(148,173,210,0.12)" strokeWidth="12" />
+      <circle cx="65" cy="65" r={r} fill="none" stroke="rgba(24,24,23,0.09)" strokeWidth="12" />
       <circle
         cx="65"
         cy="65"
@@ -173,8 +173,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/80">
-          Studio overview
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+          Operations overview
         </p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-gradient">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">{session.dealer.name} at a glance.</p>
@@ -211,7 +211,7 @@ export default async function DashboardPage() {
               <h2 className="text-sm font-medium text-slate-200">Upcoming viewings</h2>
               <Link
                 href="/leads"
-                className="rounded-lg border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-300 transition hover:bg-sky-500/20"
+                className="rounded-lg border border-black/[0.1] bg-[#1c1c1e] px-2.5 py-1 text-xs text-[#fff] transition hover:bg-[#30302e]"
               >
                 + New
               </Link>

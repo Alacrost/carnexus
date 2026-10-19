@@ -77,9 +77,13 @@ export async function assignCrmRole(_prev: CrmState, formData: FormData): Promis
   if (!ctx.supabase) return { error: "Preview only. Connect Supabase to assign profiles." };
   const parsed = z.object({ user_id: z.string().uuid(), role_id: optionalId }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Choose a team member and profile." };
-  const { data, error } = await ctx.supabase.from("dealer_members").update({ crm_role_id: parsed.data.role_id || null })
-    .eq("dealer_id", ctx.session.dealer.id).eq("user_id", parsed.data.user_id).eq("role", "sales").eq("status", "active").select("user_id").single();
-  if (error || !data) return { error: "Could not assign the profile. It must belong to this dealer and the member must be an active salesperson." };
+  const { error } = await ctx.supabase.rpc("team_command", {
+    p_dealer: ctx.session.dealer.id,
+    p_command: "assign_crm_profile",
+    p_target: parsed.data.user_id,
+    p_input: { crmRoleId: parsed.data.role_id || "" },
+  });
+  if (error) return { error: "Could not assign the profile. It must belong to this dealer and the member must be an active salesperson." };
   revalidatePath("/leads/team");
   return { saved: true };
 }

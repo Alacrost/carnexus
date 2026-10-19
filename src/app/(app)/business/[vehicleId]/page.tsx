@@ -44,8 +44,6 @@ export default async function DealPage({ params }: { params: Promise<{ vehicleId
     costs = (c ?? []) as CostItem[];
   }
 
-  const canManage = can.viewFinancials(session.role);
-
   return (
     <div>
       <Link href="/business" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
@@ -53,13 +51,16 @@ export default async function DealPage({ params }: { params: Promise<{ vehicleId
       </Link>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gradient">{vehicleLabel}</h1>
       <p className="mt-1 text-sm text-slate-400">Commercial record — purchase, costs, sale.</p>
+      <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
+        This is a read-only legacy commercial record, not the current car details page. <Link href={`/inventory/${vehicleId}`} className="font-semibold underline">Open vehicle details and Buying info →</Link> New sales run through <Link href="/business/deals" className="font-medium underline">Deals</Link> and acquisitions through <Link href="/business/purchases" className="font-medium underline">Purchase orders</Link>, preserving invoices, payments and audit history.
+      </div>
 
       <div className="mt-6">
         <DealEditor
           vehicleId={vehicleId}
           initialDeal={deal}
           initialCosts={costs}
-          canManage={canManage}
+          canManage={false}
           demo={isDemoMode()}
         />
       </div>

@@ -1,0 +1,18 @@
+"use client";
+
+import {useRouter} from "next/navigation";
+import {useState,useTransition} from "react";
+import {recordVehicleHistoryReport,type VehicleHistoryInput} from "./history-report-actions";
+
+const FIELDS:{key:"accident"|"writeOff"|"stolen"|"mileageDiscrepancy";label:string}[]=[
+  {key:"accident",label:"Accident"},{key:"writeOff",label:"Write-off"},{key:"stolen",label:"Stolen"},{key:"mileageDiscrepancy",label:"Mileage discrepancy"},
+];
+export function VehicleHistoryReportForm({vehicleId}:{vehicleId:string}){
+  const router=useRouter();const[open,setOpen]=useState(false);const[error,setError]=useState("");const[pending,start]=useTransition();
+  const empty=():VehicleHistoryInput=>({vehicleId,source:"vehicle_report",reportReference:"",reportedOn:new Date().toISOString().slice(0,10),notes:"",accident:"unknown",writeOff:"unknown",stolen:"unknown",mileageDiscrepancy:"unknown"});
+  const[form,setForm]=useState<VehicleHistoryInput>(empty);
+  function patch(next:Partial<VehicleHistoryInput>){setForm(current=>({...current,...next}));}
+  function save(){setError("");start(async()=>{const result=await recordVehicleHistoryReport(form);if(result.error)setError(result.error);else{setForm(empty());setOpen(false);router.refresh();}});}
+  if(!open)return <button type="button" onClick={()=>setOpen(true)} className="mt-4 border border-[#575d56] bg-[#313630] px-3 py-2 text-xs font-semibold text-white">+ Record vehicle history report</button>;
+  return <div className="mt-4 border border-black/15 bg-[#f5f5f3] p-4"><h3 className="text-sm font-semibold">Record new history information</h3><p className="mt-1 text-xs text-[#55554f]">This report is kept for audit. A new positive finding requires fresh buyer confirmation on any open Deal before invoice.</p><div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="text-xs">Source<select value={form.source} onChange={event=>patch({source:event.target.value as VehicleHistoryInput["source"]})} className="studio-input mt-1"><option value="vehicle_report">Vehicle report</option><option value="customer_declaration">Customer declaration</option><option value="dealer_declaration">Dealer observation</option></select></label><label className="text-xs">Reference<input value={form.reportReference} onChange={event=>patch({reportReference:event.target.value})} maxLength={120} className="studio-input mt-1"/></label><label className="text-xs">Report date<input type="date" value={form.reportedOn} onChange={event=>patch({reportedOn:event.target.value})} className="studio-input mt-1"/></label></div><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{FIELDS.map(field=><label key={field.key} className="text-xs">{field.label}<select value={form[field.key]} onChange={event=>patch({[field.key]:event.target.value})} className="studio-input mt-1"><option value="unknown">Unknown / not checked</option><option value="no">No reported issue</option><option value="yes">Reported finding</option></select></label>)}</div><label className="mt-3 block text-xs">Notes<textarea value={form.notes} onChange={event=>patch({notes:event.target.value})} maxLength={2000} rows={2} className="studio-input mt-1"/></label><div className="mt-3 flex gap-2"><button type="button" onClick={save} disabled={pending} className="border border-[#313630] bg-[#313630] px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{pending?"Saving…":"Save report"}</button><button type="button" onClick={()=>setOpen(false)} disabled={pending} className="border border-black/15 px-3 py-2 text-xs">Cancel</button></div>{error&&<p role="alert" className="mt-2 text-xs text-rose-700">{error}</p>}</div>;
+}

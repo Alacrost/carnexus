@@ -83,3 +83,9 @@ export async function setDealerCurrency(formData: FormData): Promise<void> {
   await supabase.from("dealers").update({ currency }).eq("id", session.dealer.id);
   revalidatePath("/settings");
 }
+
+export async function createDealerLocation(formData:FormData):Promise<void>{
+  const session=await requireSession();if(!can.manageMembers(session.role)||isDemoMode())return;
+  const parsed=z.object({name:z.string().trim().min(2).max(120),code:z.string().trim().max(20)}).safeParse({name:formData.get("name"),code:formData.get("code")??""});
+  if(!parsed.success)return;const db=await createClient();await db.rpc("location_command",{p_dealer:session.dealer.id,p_command:"create",p_id:null,p_input:parsed.data,p_request:crypto.randomUUID()});revalidatePath("/settings");revalidatePath("/business/deals/new");
+}

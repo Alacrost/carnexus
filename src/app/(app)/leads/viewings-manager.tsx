@@ -5,7 +5,6 @@ import { LeadsIcon, InventoryIcon } from "@/components/icons";
 import {
   createViewing,
   setViewingStatus,
-  deleteViewing,
   type ViewingRow,
 } from "./actions";
 
@@ -65,13 +64,11 @@ export function ViewingsManager({
   vehicles,
   staff,
   initialViewings,
-  demo,
   initialNow,
 }: {
   vehicles: VehicleOpt[];
   staff: StaffMember[];
   initialViewings: ViewingRow[];
-  demo: boolean;
   initialNow: number;
 }) {
   const [viewings, setViewings] = useState<ViewingRow[]>(initialViewings);
@@ -174,11 +171,7 @@ export function ViewingsManager({
 
   function changeStatus(id: string, status: string) {
     setViewings((prev) => prev.map((v) => (v.id === id ? { ...v, status } : v)));
-    setViewingStatus(id, status);
-  }
-  function remove(id: string) {
-    setViewings((prev) => prev.filter((v) => v.id !== id));
-    deleteViewing(id);
+    const current=viewings.find(v=>v.id===id);if(current)setViewingStatus(id,status,current.version);
   }
 
   const canBook =
@@ -267,9 +260,6 @@ export function ViewingsManager({
                         <button type="button" onClick={() => changeStatus(v.id, "no_show")} className="text-amber-400 hover:text-amber-300">No-show</button>
                         <button type="button" onClick={() => changeStatus(v.id, "cancelled")} className="text-slate-400 hover:text-rose-400">Cancel</button>
                       </>
-                    )}
-                    {!demo && (
-                      <button type="button" onClick={() => remove(v.id)} className="text-slate-500 hover:text-rose-400">Delete</button>
                     )}
                   </div>
                 </div>

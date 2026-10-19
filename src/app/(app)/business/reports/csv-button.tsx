@@ -1,10 +1,12 @@
 "use client";
 
+import {csvFromRows} from "@/lib/csv";
+
 // Client CSV export for a report table (headers + rows already computed on the server).
 export function CsvButton({ filename, headers, rows }: { filename: string; headers: string[]; rows: (string | number)[][] }) {
   function download() {
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-    const csv = [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
+    const columns=headers.map((label,index)=>({key:String(index),label}));
+    const csv=csvFromRows(columns,rows.map(row=>Object.fromEntries(row.map((value,index)=>[String(index),value]))));
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

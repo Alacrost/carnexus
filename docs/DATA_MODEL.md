@@ -78,6 +78,27 @@ is_cover, created_at.
 id, dealer_id, name, email, phone, notes, gdpr_consent_at, deleted_at (soft delete),
 created_at.
 
+The UI calls this shared register **Contacts**. Keep the existing `customers` table,
+IDs, `/business/customers` routes and API identifiers; the label change does not
+create a separate vendor register or migrate existing contacts.
+
+- `type` (`individual` / `business`) describes a person or company, not a sales role.
+- `deals.customer_id` identifies the buyer; `purchase_orders.vendor_id` identifies
+  the seller. Both reference this register. The same contact may have both roles;
+  balances and permissions remain attached to their respective transactions.
+- Contact group `system_key='customers'` is displayed as **All contacts** and includes
+  all active contacts. Finance-company group membership remains explicit and keeps
+  its existing eligibility rules.
+- New Purchase stores the complete new vendor atomically with its PO. Selecting an
+  existing contact links its ID without overwriting its details. Country codes in
+  this form are IE, GB and CA; contact country/type/tax number do not set purchase VAT.
+- The contact timeline currently covers sales and CRM follow-up, not purchase orders
+  or vendor payments. The CSV export retains its existing columns. Name/email are
+  not unique identifiers; searching first avoids duplicates, but automatic merging
+  or duplicate blocking is not implemented.
+
+Purchase vendor persistence: `20261018210942_purchase_vendor_contact_details.sql`.
+
 ### `leads`
 | column | type | notes |
 |---|---|---|

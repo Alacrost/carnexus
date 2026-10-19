@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { money } from "@/lib/currency";
 import { DEAL_STAGES, STAGE_ACCENT, stageLabel } from "@/lib/deals";
 import { setDealStage } from "./actions";
+import { EntityLink } from "@/components/entity-link";
 
 export interface DealRow {
   id: string;
@@ -14,10 +15,15 @@ export interface DealRow {
   stage: string;
   currency: string;
   customer: string;
+  customerId?: string | null;
   car: string;
+  vehicleId?: string | null;
+  vehicleReference?: string | null;
+  vehicleRegistration?: string | null;
   sale: number;
   deposit: number;
   salesperson: string;
+  agreement_current?: boolean;
 }
 
 function initials(name: string) {
@@ -36,6 +42,7 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
   const currency = rows[0]?.currency ?? "EUR";
   const totalValue = visible.reduce((a, r) => a + r.sale, 0);
   const totalDeposits = visible.reduce((a, r) => a + r.deposit, 0);
+  const openAgreements = visible.filter((r) => r.agreement_current).length;
 
   function move(id: string, stage: string) {
     start(async () => {
@@ -54,7 +61,8 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
         <option value="all">All salespeople</option>
         {reps.map((r) => <option key={r} value={r}>{r}</option>)}
       </select>
-      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-400">Deals <b className="text-slate-200">{visible.length}</b></span>
+      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-400">Pipeline records <b className="text-slate-200">{visible.length}</b></span>
+      <span className="rounded-full border border-violet-400/20 bg-violet-400/5 px-2.5 py-1 text-slate-400">Open agreements <b className="text-violet-300">{openAgreements}</b></span>
       <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-slate-400">Pipeline <b className="text-slate-200 tabular-nums">{money(totalValue, currency)}</b></span>
       <span className="rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2.5 py-1 text-slate-400">Deposits <b className="text-emerald-300 tabular-nums">{money(totalDeposits, currency)}</b></span>
       <div className="ml-auto inline-flex overflow-hidden rounded-lg border border-white/10">
@@ -77,9 +85,9 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/80">Sales</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gradient">Deals pipeline</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gradient">Sales pipeline</h1>
         </div>
-        <Link href="/business/deals/new" className="btn-gradient text-sm">+ New deal</Link>
+        <div className="flex flex-wrap gap-2"><Link href="/business/quotes" className="border border-white/20 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">Track quotes</Link><Link href="/business/deals/new" className="btn-gradient text-sm">+ Deal</Link></div>
       </div>
 
       {filterBar}
@@ -99,14 +107,14 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
                   {items.map((r) => (
                     <div key={r.id} className="group rounded-xl border border-white/10 bg-[#0b0f17]/70 p-2.5 transition hover:border-white/20">
                       <div className="flex items-center justify-between gap-2">
-                        <Link href={`/business/deals/${r.id}`} className="font-mono text-[11px] text-sky-400 hover:text-sky-300">{r.deal_no}</Link>
+                        <EntityLink kind="deal" id={r.id} reference={r.deal_no} href={`/business/deals/${r.id}`} />
                         <span title={r.salesperson} className="grid h-5 w-5 place-items-center rounded-full bg-gradient-to-br from-sky-500/70 to-violet-500/70 text-[9px] font-semibold text-white">{initials(r.salesperson)}</span>
                       </div>
-                      <p className="mt-1 truncate text-sm text-slate-100">{r.customer}</p>
-                      <p className="truncate text-[11px] text-slate-500">{r.car}</p>
+                      <p className="mt-2 truncate text-sm text-slate-100">{r.customerId ? <EntityLink kind="customer" id={r.customerId} href={`/business/customers/${r.customerId}`} /> : r.customer} <span className="ml-1">{r.customer}</span></p>
+                      <p className="mt-1 truncate text-[11px] text-slate-500">{r.vehicleId ? <EntityLink kind="vehicle" id={r.vehicleId} reference={r.vehicleReference} href={`/inventory/${r.vehicleId}`} /> : null} <span className="ml-1">{r.car}</span>{r.vehicleRegistration&&<span className="ml-2 font-mono font-semibold text-slate-700">Plate {r.vehicleRegistration}</span>}</p>
                       <div className="mt-1.5 flex items-center justify-between">
                         <span className="text-xs font-medium tabular-nums text-slate-200">{money(r.sale, currency)}</span>
-                        {r.deposit > 0 && <span className="text-[10px] text-emerald-400">dep {money(r.deposit, currency)}</span>}
+                        <span className="flex items-center gap-1.5">{r.agreement_current && <span className="text-[9px] uppercase tracking-wider text-violet-300">Agreement open</span>}{r.deposit > 0 && <span className="text-[10px] text-emerald-400">dep {money(r.deposit, currency)}</span>}</span>
                       </div>
                       <select
                         value={r.stage}
@@ -131,6 +139,7 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
                 <th className="px-3 py-2.5">Deal</th>
                 <th className="px-3 py-2.5">Customer</th>
                 <th className="px-3 py-2.5">Car</th>
+                <th className="px-3 py-2.5">Plate</th>
                 <th className="px-3 py-2.5">Stage</th>
                 <th className="px-3 py-2.5">Rep</th>
                 <th className="px-3 py-2.5 text-right">Sale</th>
@@ -141,9 +150,10 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
             <tbody>
               {visible.map((r) => (
                 <tr key={r.id} className="border-t border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-3 py-2"><Link href={`/business/deals/${r.id}`} className="font-mono text-sky-400 hover:text-sky-300">{r.deal_no}</Link></td>
-                  <td className="px-3 py-2 text-slate-200">{r.customer}</td>
-                  <td className="px-3 py-2 text-slate-400">{r.car}</td>
+                  <td className="px-3 py-2"><EntityLink kind="deal" id={r.id} reference={r.deal_no} href={`/business/deals/${r.id}`} /></td>
+                  <td className="px-3 py-2 text-slate-200">{r.customerId ? <EntityLink kind="customer" id={r.customerId} href={`/business/customers/${r.customerId}`} /> : null}<span className="ml-2">{r.customer}</span></td>
+                  <td className="px-3 py-2 text-slate-400">{r.vehicleId ? <EntityLink kind="vehicle" id={r.vehicleId} reference={r.vehicleReference} href={`/inventory/${r.vehicleId}`} /> : null}<span className="ml-2">{r.car}</span></td>
+                  <td className="px-3 py-2 font-mono text-xs font-semibold text-slate-700">{r.vehicleRegistration ?? "—"}</td>
                   <td className="px-3 py-2"><span className={`rounded-full border px-2 py-0.5 text-[10px] ${STAGE_ACCENT[r.stage]}`}>{stageLabel(r.stage)}</span></td>
                   <td className="px-3 py-2 text-slate-400">{r.salesperson}</td>
                   <td className="px-3 py-2 text-right tabular-nums text-slate-300">{money(r.sale, currency)}</td>
@@ -152,7 +162,7 @@ export function DealsBoard({ rows }: { rows: DealRow[] }) {
                 </tr>
               ))}
               {visible.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-6 text-center text-sm text-slate-500">No open deals.</td></tr>
+                <tr><td colSpan={9} className="px-3 py-6 text-center text-sm text-slate-500">No open deals.</td></tr>
               )}
             </tbody>
           </table>

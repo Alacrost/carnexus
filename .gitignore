@@ -12,6 +12,13 @@
 
 # testing
 /coverage
+/.autonexus-demo/
+/.artifacts/
+
+# Local Android build output for the separate Pinturinha utility.
+/pintura-infantil/.tools/
+/pintura-infantil/build/
+/pintura-infantil/output/
 
 # next.js
 /.next/

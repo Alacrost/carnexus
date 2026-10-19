@@ -70,6 +70,13 @@ export function dealMoney(input: { retailPrice: number; sivTotal: number; paid: 
 
 // VAT + totals frozen onto a document (Agreement/Invoice). Marginal scheme VAT is on the
 // margin (needs cost); when cost is unknown it is shown as 0 with a margin-scheme note.
+export function calcVehicleTax(sale: number, scheme: string, vatRate = 23, vrtAmount = 0, vrtVatTreatment: "included" | "excluded" = "included") {
+  const vatBase = sale - (vrtVatTreatment === "excluded" ? vrtAmount : 0);
+  const vat = scheme === "standard" ? Math.round((vatBase * vatRate / (100 + vatRate) + Number.EPSILON) * 100) / 100 : 0;
+  return { vat, net: Math.round((sale - vat + Number.EPSILON) * 100) / 100, vatBase, vrtAmount, vatRate: scheme === "standard" ? vatRate : 0,
+    vatLabel: scheme === "standard" ? `${vatRate}%` : scheme === "margin" ? "Margin scheme — VAT not separately disclosed" : "No VAT" };
+}
+
 export function docFigures(input: {
   scheme: string;
   sale: number;
@@ -77,28 +84,22 @@ export function docFigures(input: {
   siv: number;
   totalCost?: number | null;
   deposits: number;
+  vatRate?: number;
+  vrtAmount?: number;
+  vrtVatTreatment?: "included" | "excluded";
 }) {
   const sale = input.sale || 0;
   const costToChange = (input.retail || 0) - (input.siv || 0);
-  let vat = 0;
-  let vatRate = 23;
-  let vatLabel = "23%";
-  if (input.scheme === "standard") {
-    vat = (sale * 0.23) / 1.23;
-  } else if (input.scheme === "margin") {
-    vatLabel = "23% (margin scheme)";
-    vat = input.totalCost != null ? (Math.max(0, sale - input.totalCost) * 0.23) / 1.23 : 0;
-  } else {
-    vatRate = 0;
-    vatLabel = "No VAT";
-  }
-  const net = sale - vat;
+  const {vat,vatRate,vatLabel,net,vatBase}=calcVehicleTax(sale,input.scheme,input.vatRate,input.vrtAmount,input.vrtVatTreatment);
   return {
     costToChange,
     net,
     vat,
     vatRate,
     vatLabel,
+    vrtAmount: input.vrtAmount ?? 0,
+    vrtVatTreatment: input.vrtVatTreatment ?? "included",
+    vehicleVatBase: vatBase,
     subTotal: sale,
     invoiceTotal: sale,
     balanceInvoice: sale - (input.siv || 0) - (input.deposits || 0),

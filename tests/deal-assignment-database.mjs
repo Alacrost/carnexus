@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {readFile,readdir} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
+
+// Disposable PostgreSQL only. No connection to hosted Supabase or persisted demo.
+const db=new PGlite({extensions:{pgcrypto}});
+try {
+  await db.exec(`create role anon; create role authenticated; create schema auth; create schema storage;
+    create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
+    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema public,auth,storage to anon,authenticated;
+    grant execute on function auth.uid() to anon,authenticated;
+    create table storage.buckets(id text primary key,name text,public boolean);
+    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
+    alter table storage.objects enable row level security;
+    create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
+    alter default privileges in schema public grant all on tables to authenticated,anon;`);
+  const files=(await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')&&!f.startsWith('087')).sort();
+  for(const file of files) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+  const dealer=randomUUID(),otherDealer=randomUUID(),owner=randomUUID(),admin=randomUUID(),sales=randomUUID(),manager=randomUUID(),accountant=randomUUID(),suspended=randomUUID(),outsider=randomUUID(),customer=randomUUID(),vehicle=randomUUID(),otherVehicle=randomUUID();
+  const users=[[owner,'owner'],[admin,'admin'],[sales,'sales'],[manager,'sales'],[accountant,'accountant'],[suspended,'sales'],[outsider,'sales']];
+  for(const [id,role] of users) await db.query('insert into auth.users(id,email) values($1,$2)',[id,id+'@assignment.test']);
+  for(const [id,slug] of [[dealer,'assignment-test'],[otherDealer,'assignment-other']]) await db.query("insert into dealers(id,name,slug,modules) values($1,'TEST ONLY',$2,'{\"sales\":true}')",[id,slug]);
+  for(const [id,role] of users) await db.query('insert into dealer_members(dealer_id,user_id,role,status) values($1,$2,$3,$4)',[id===outsider?otherDealer:dealer,id,role,id===suspended?'suspended':'active']);
+  await db.query("insert into customers(id,dealer_id,name) values($1,$2,'Test customer')",[customer,dealer]);
+  for(const id of [vehicle,otherVehicle]) await db.query("insert into vehicles(id,dealer_id,make,model,year,km,sale_price,status) values($1,$2,'Ford','Focus',2020,1000,10000,'ready_for_sale')",[id,dealer]);
+  const actor=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+  await actor(owner);await db.exec('reset role');
+  const profile=randomUUID();
+  await db.query("insert into crm_roles(id,dealer_id,name,permissions) values($1,$2,'Explicit assignment capability',array['read','assign'])",[profile,dealer]);
+  await db.query('update dealer_members set crm_role_id=$3 where dealer_id=$1 and user_id=$2',[dealer,manager,profile]);
+  const input={sale:{customerId:customer,vehicleId:vehicle,salespersonId:sales,salePrice:10000},terms:{},deposits:[],trades:[],agreement:false};
+  const session=randomUUID();
+  const save=async(revision=0,data=input)=>(await db.query('select autosave_new_deal($1,$2,$3,$4::jsonb,$5) result',[dealer,session,revision,JSON.stringify(data),randomUUID()])).rows[0].result;
+  await actor(sales);
+  const created=await save();
+  const notes=await save(1,{...input,sale:{...input.sale,notes:'Normal sales edit'}});
+  await assert.rejects(()=>save(2,{...input,sale:{...input.sale,salespersonId:admin}}),/assignment_not_allowed/);
+  const assign=async(rep,version,request=randomUUID())=>(await db.query('select assign_deal_salesperson($1,$2,$3,$4,$5) result',[dealer,created.id,rep,version,request])).rows[0].result;
+  for(const id of [sales,accountant,outsider,suspended]) {await actor(id);await assert.rejects(()=>assign(admin,notes.version),/assignment_not_allowed/);}
+  await actor(manager);
+  await assert.rejects(()=>assign(suspended,notes.version),/invalid_assignee/);
+  await assert.rejects(()=>assign(outsider,notes.version),/invalid_assignee/);
+  await assert.rejects(()=>assign(accountant,notes.version),/invalid_assignee/);
+  await assert.rejects(()=>assign(admin,notes.version+1),/stale_deal/);
+  const request=randomUUID(),changed=await assign(admin,notes.version,request);
+  assert.equal(changed.version,notes.version+1);assert.equal(changed.salespersonId,admin);
+  assert.deepEqual(await assign(admin,notes.version,request),changed);
+  await assert.rejects(()=>assign(owner,notes.version,request),/request_reused/);
+  await actor(admin);const changedAgain=await assign(owner,changed.version);
+  await actor(owner);await assign(sales,changedAgain.version);
+  await db.exec('reset role');
+  assert.equal((await db.query("select count(*)::int n from deal_events where deal_id=$1 and kind='salesperson_changed'",[created.id])).rows[0].n,3);
+  await actor(sales);await db.exec('reset role');
+  await assert.rejects(()=>db.query('update deals set salesperson_id=$2 where id=$1',[created.id,admin]),/assignment_not_allowed/);
+  await db.query('update deals set salesperson_id=salesperson_id,notes=$2 where id=$1',[created.id,'Other updates remain allowed']);
+  // Every create path observes the actual salesperson write, not only the UI.
+  await db.exec('set role authenticated');
+  const second={...input,sale:{...input.sale,vehicleId:otherVehicle,salespersonId:admin}};
+  await assert.rejects(()=>db.query('select autosave_new_deal($1,$2,0,$3::jsonb,$4)',[dealer,randomUUID(),JSON.stringify(second),randomUUID()]),/assignment_not_allowed/);
+  await actor(owner);await db.exec('reset role');
+  const quote=randomUUID();
+  await db.query("insert into sales_quotes(id,dealer_id,quote_no,customer_id,vehicle_id,salesperson_id,sale_price,currency,vat_scheme,valid_days,issued_on,valid_until,status,snapshot,created_by) values($1,$2,'TEST QUOTE',$3,$4,$5,10000,'EUR','standard',7,current_date,current_date+6,'open','{}',$5)",[quote,dealer,customer,otherVehicle,admin]);
+  await actor(sales);
+  const conversion={...second.sale,sourceQuoteId:quote};
+  await assert.rejects(()=>db.query("select commercial_command($1,'sale',null,$2::jsonb,$3)",[dealer,JSON.stringify({...conversion,salespersonId:sales}),randomUUID()]),/assignment_not_allowed/);
+  await assert.rejects(()=>db.query("select commercial_command($1,'sale',null,$2::jsonb,$3)",[dealer,JSON.stringify({...conversion,sourceQuoteId:randomUUID()}),randomUUID()]),/quote_parties_changed/);
+  await assert.rejects(()=>db.query("select commercial_command($1,'sale',null,$2::jsonb,$3)",[dealer,JSON.stringify({...conversion,vehicleId:vehicle}),randomUUID()]),/quote_parties_changed/);
+  const converted=(await db.query("select create_deal_from_sheet($1,$2::jsonb,'{}'::jsonb,null,'deal',$3) result",[dealer,JSON.stringify(conversion),randomUUID()])).rows[0].result;
+  await db.exec('reset role');
+  assert.equal((await db.query('select salesperson_id,source_quote_id from deals where id=$1',[converted.id])).rows[0].salesperson_id,admin);
+  await db.query("update deals set status='cancelled' where id=$1",[created.id]);
+  await actor(owner);await assert.rejects(()=>assign(admin,changedAgain.version+1),/deal_closed/);
+  console.log('PASS Deal assignment: self creation, owner/admin/custom assign, unauthorized autosave/API/raw writes, tenant/active assignees, version/replay/event, ordinary edits and quote inheritance');
+} finally {await db.close();}

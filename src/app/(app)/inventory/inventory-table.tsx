@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { setVehicleStatus, deleteVehicle } from "./actions";
+import { useState } from "react";
+import { EntityLink, vehicleReference } from "@/components/entity-link";
 
 export interface VehicleRow {
   id: string;
+  vehicle_no?: number | null;
   make: string;
   model: string;
   year: number;
@@ -16,6 +17,8 @@ export interface VehicleRow {
   status: string;
   registration?: string | null;
   stock_class?: string | null;
+  originating_po_id?: string | null;
+  provenance_status?: "verified" | "legacy_unresolved";
 }
 
 const statusLabels: Record<string, string> = {
@@ -36,30 +39,13 @@ const STATUS_TABS = [
   ["sold", "Sold"],
 ] as const;
 
-const UNDO_MS = 6000;
-
-type Action = "sold" | "delete";
-
-// A change is applied optimistically and only committed to the DB after the
-// undo window closes, so "Undo" is a plain cancel — no re-insert gymnastics.
-interface Pending {
-  action: Action;
-  row: VehicleRow;
-  index: number;
-  timer: ReturnType<typeof setTimeout>;
-}
-
 export function InventoryTable({
   vehicles,
-  canManage,
 }: {
   vehicles: VehicleRow[];
   canManage: boolean;
 }) {
-  const [rows, setRows] = useState<VehicleRow[]>(vehicles);
-  const [confirming, setConfirming] = useState<{ id: string; action: Action } | null>(null);
-  const pendingRef = useRef<Pending | null>(null);
-  const [toast, setToast] = useState<{ label: string } | null>(null);
+  const rows = vehicles;
   const [query, setQuery] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [stockTab, setStockTab] = useState<string>("all");
@@ -84,64 +70,10 @@ export function InventoryTable({
       .includes(q);
   });
 
-  const commit = (p: Pending) => {
-    if (p.action === "delete") void deleteVehicle(p.row.id);
-    else void setVehicleStatus(p.row.id, "sold");
-  };
-
-  // Flush any pending change (e.g. before starting another, or on unmount).
-  const flush = () => {
-    const p = pendingRef.current;
-    if (!p) return;
-    clearTimeout(p.timer);
-    commit(p);
-    pendingRef.current = null;
-    setToast(null);
-  };
-
-  useEffect(() => flush, []); // commit on unmount so changes aren't lost
-
-  function start(action: Action, row: VehicleRow) {
-    flush();
-    setConfirming(null);
-    const index = rows.findIndex((r) => r.id === row.id);
-
-    setRows((prev) =>
-      action === "delete"
-        ? prev.filter((r) => r.id !== row.id)
-        : prev.map((r) => (r.id === row.id ? { ...r, status: "sold" } : r))
-    );
-
-    const timer = setTimeout(() => {
-      commit(pendingRef.current!);
-      pendingRef.current = null;
-      setToast(null);
-    }, UNDO_MS);
-
-    pendingRef.current = { action, row, index, timer };
-    setToast({ label: action === "delete" ? "Vehicle deleted" : "Marked as sold" });
-  }
-
-  function undo() {
-    const p = pendingRef.current;
-    if (!p) return;
-    clearTimeout(p.timer);
-    setRows((prev) => {
-      if (p.action === "delete") {
-        const next = [...prev];
-        next.splice(Math.min(p.index, next.length), 0, p.row);
-        return next;
-      }
-      return prev.map((r) => (r.id === p.row.id ? p.row : r));
-    });
-    pendingRef.current = null;
-    setToast(null);
-  }
-
   return (
     <>
       {/* Search + status filters */}
-      <div className="mt-6 space-y-3">
+      <div id="stock-search" className="mt-6 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
@@ -202,26 +134,22 @@ export function InventoryTable({
               <th className="px-4 py-3 font-medium">KM</th>
               <th className="px-4 py-3 font-medium">Price</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              {canManage && <th className="px-4 py-3 font-medium text-right">Actions</th>}
+              <th className="px-4 py-3 font-medium">Origin</th>
             </tr>
           </thead>
           <tbody>
             {visible.map((v) => (
               <tr key={v.id} className="border-t border-white/5 transition-colors hover:bg-white/[0.02]">
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/inventory/${v.id}`}
-                    className="text-slate-100 hover:text-sky-400 hover:underline"
-                  >
-                    {v.make} {v.model}
-                  </Link>
+                  <EntityLink kind="vehicle" id={v.id} reference={vehicleReference(v.vehicle_no)} href={`/inventory/${v.id}`} />
+                  <span className="ml-2 text-slate-100">{v.make} {v.model}</span>
                   {v.stock_class === "trade" && (
                     <span className="ml-2 rounded border border-violet-400/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-violet-300">Trade</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   {v.registration ? (
-                    <span className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-xs tracking-wider text-slate-200">{v.registration}</span>
+                    <span className="font-mono text-xs font-semibold tracking-wider text-slate-700">{v.registration}</span>
                   ) : (
                     <span className="text-slate-600">—</span>
                   )}
@@ -236,62 +164,19 @@ export function InventoryTable({
                     {statusLabels[v.status] ?? v.status}
                   </span>
                 </td>
-                {canManage && (
-                  <td className="px-4 py-3 text-right">
-                    {confirming?.id === v.id ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span className="text-xs text-slate-400">
-                          {confirming.action === "delete" ? "Delete?" : "Mark sold?"}
-                        </span>
-                        <button
-                          onClick={() => start(confirming.action, v)}
-                          className="rounded bg-sky-500 px-2 py-1 text-xs font-medium text-white hover:bg-sky-400"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setConfirming(null)}
-                          className="rounded px-2 py-1 text-xs text-slate-400 hover:text-white"
-                        >
-                          Cancel
-                        </button>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-3">
-                        {v.status !== "sold" && (
-                          <button
-                            onClick={() => setConfirming({ id: v.id, action: "sold" })}
-                            className="text-xs text-emerald-400 hover:text-emerald-300"
-                          >
-                            Mark sold
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setConfirming({ id: v.id, action: "delete" })}
-                          className="text-xs text-slate-500 hover:text-red-400"
-                        >
-                          Delete
-                        </button>
-                      </span>
-                    )}
-                  </td>
-                )}
+                <td className="px-4 py-3">{v.provenance_status === "verified" && v.originating_po_id ? <Link href={`/business/purchases/${v.originating_po_id}`} className="text-xs text-emerald-300 hover:underline">Verified PO</Link> : <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[10px] uppercase tracking-wider text-amber-200">Legacy review</span>}</td>
               </tr>
             ))}
             {visible.length === 0 && (
               <tr>
                 <td
-                  colSpan={canManage ? 7 : 6}
+                  colSpan={7}
                   className="px-4 py-10 text-center text-slate-500"
                 >
                   {rows.length === 0 ? (
                     <>
                       No vehicles yet.{" "}
-                      {canManage && (
-                        <Link href="/inventory/new" className="text-sky-400 hover:underline">
-                          Add your first vehicle
-                        </Link>
-                      )}
+                      <Link href="/business/purchases/new" className="text-sky-400 hover:underline">Create the first purchase order</Link>
                     </>
                   ) : (
                     "No vehicles match your search."
@@ -303,14 +188,6 @@ export function InventoryTable({
         </table>
       </div>
 
-      {toast && (
-        <div className="studio-surface animate-rise fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 px-4 py-2 text-sm">
-          <span className="text-slate-200">{toast.label}</span>
-          <button onClick={undo} className="font-medium text-sky-400 hover:text-sky-300">
-            Undo
-          </button>
-        </div>
-      )}
     </>
   );
 }

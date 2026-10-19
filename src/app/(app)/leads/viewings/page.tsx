@@ -1,9 +1,9 @@
-import { requireSession } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { isDemoMode, demoLeads, demoVehicles, demoViewings, demoStaff } from "@/lib/demo";
-import { can, type LeadStage } from "@/lib/types";
+import type { LeadStage } from "@/lib/types";
+import { crmContext } from "@/lib/crm-server";
 import { ViewingsManager, type VehicleOpt, type StaffMember } from "../viewings-manager";
 import type { ViewingRow } from "../actions";
+import Link from "next/link";
 
 const stages: { key: LeadStage; label: string }[] = [
   { key: "new", label: "New Lead" },
@@ -16,16 +16,14 @@ const stages: { key: LeadStage; label: string }[] = [
 ];
 
 export default async function LeadsPage() {
-  const session = await requireSession();
-  const canSee = can.viewCustomerData(session.role);
-
-  // Agency has no access to customer data (leads / viewings).
-  if (!canSee) {
+  const ctx = await crmContext();
+  const session = ctx.session;
+  if (ctx.error || !ctx.permissions.includes("read")) {
     return (
       <div>
         <h1 className="text-3xl font-semibold tracking-tight text-gradient">Leads</h1>
         <p className="mt-2 text-sm text-slate-400">
-          Your role does not include customer data.
+          {ctx.error ?? "Your CRM profile does not include customer data."}
         </p>
       </div>
     );
@@ -35,6 +33,7 @@ export default async function LeadsPage() {
   let vehicles: VehicleOpt[] = [];
   let viewings: ViewingRow[] = [];
   let staff: StaffMember[] = [];
+  let canExport = false;
 
   if (isDemoMode()) {
     leads = demoLeads;
@@ -44,8 +43,8 @@ export default async function LeadsPage() {
     viewings = demoViewings as ViewingRow[];
     staff = demoStaff;
   } else {
-    const supabase = await createClient();
-    const [{ data: l }, { data: v }, { data: vw }, { data: members }] = await Promise.all([
+    const supabase = ctx.supabase!;
+    const [{ data: l }, { data: v }, { data: vw }, { data: members }, exportPermission] = await Promise.all([
       supabase.from("leads").select("stage").eq("dealer_id", session.dealer.id),
       supabase
         .from("vehicles")
@@ -55,7 +54,7 @@ export default async function LeadsPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("viewings")
-        .select("id, lead_name, phone, vehicle_id, vehicle_label, scheduled_for, status, notes, responsible")
+        .select("id, lead_name, phone, vehicle_id, vehicle_label, scheduled_for, status, notes, responsible, version")
         .eq("dealer_id", session.dealer.id)
         .order("scheduled_for", { ascending: true }),
       supabase
@@ -64,6 +63,7 @@ export default async function LeadsPage() {
         .eq("dealer_id", session.dealer.id)
         .eq("status", "active")
         .in("role", ["owner", "admin", "sales"]),
+      supabase.rpc("crm_allowed", { p_dealer_id: session.dealer.id, p_permission: "report" }),
     ]);
     leads = l ?? [];
     vehicles = (v ?? []).map((x) => ({ id: x.id, label: `${x.year} ${x.make} ${x.model}` }));
@@ -78,6 +78,7 @@ export default async function LeadsPage() {
       name: nameById.get(m.user_id) ?? "Team member",
       role: m.role,
     }));
+    canExport = ctx.permissions.includes("report") && exportPermission.data === true;
   }
 
   const byStage = new Map<string, number>();
@@ -86,6 +87,7 @@ export default async function LeadsPage() {
   return (
     <div className="space-y-8">
       <div>
+        <div className="flex items-center justify-between gap-4"><Link href="/leads" className="text-sm text-sky-300">← Leads</Link>{canExport && <Link href="/leads/export?type=appointments" className="text-sm text-sky-300">Export CSV</Link>}</div>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/80">
           Pipeline
         </p>
@@ -110,7 +112,7 @@ export default async function LeadsPage() {
       </div>
 
       {/* Viewings */}
-      <ViewingsManager vehicles={vehicles} staff={staff} initialViewings={viewings} demo={isDemoMode()} initialNow={new Date().getTime()} />
+      <ViewingsManager vehicles={vehicles} staff={staff} initialViewings={viewings} initialNow={new Date().getTime()} />
     </div>
   );
 }

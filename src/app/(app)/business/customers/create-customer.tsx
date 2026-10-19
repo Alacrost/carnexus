@@ -39,7 +39,7 @@ export function CreateCustomer() {
   }
 
   if (!open) {
-    return <button type="button" onClick={() => setOpen(true)} className="btn-gradient">+ New customer</button>;
+    return <button type="button" onClick={() => setOpen(true)} className="btn-gradient">+ New contact</button>;
   }
 
   const inp = "mt-1 studio-input";
@@ -47,7 +47,7 @@ export function CreateCustomer() {
     <div className="fixed inset-0 z-50 grid place-items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
       <div className="my-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0f17] p-6" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-medium text-slate-100">New customer</h2>
+          <h2 className="font-medium text-slate-100">New contact</h2>
           <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white">✕</button>
         </div>
         <div className="grid gap-3">
@@ -57,7 +57,7 @@ export function CreateCustomer() {
               <option value="business">Business</option>
             </select></label>
           <label className="text-sm"><span className="text-slate-300">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={inp} placeholder="Customer / business name" /></label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inp} placeholder="Contact / business name" /></label>
           {type === "business" && (
             <label className="text-sm"><span className="text-slate-300">VAT number</span>
               <input value={vat} onChange={(e) => setVat(e.target.value)} className={inp} /></label>
@@ -70,13 +70,13 @@ export function CreateCustomer() {
           </div>
           <div className="grid grid-cols-[1fr_120px] gap-3">
             <label className="text-sm"><span className="text-slate-300">Address</span>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inp} /></label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={500} className={inp} /></label>
             <label className="text-sm"><span className="text-slate-300">Eircode</span>
               <input value={eircode} onChange={(e) => setEircode(e.target.value)} className={inp} /></label>
           </div>
         </div>
         <button type="button" onClick={save} disabled={pending || name.trim().length < 2} className="btn-gradient mt-4 w-full disabled:opacity-50">
-          {pending ? "Saving…" : "Save customer"}
+          {pending ? "Saving…" : "Save contact"}
         </button>
         {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
       </div>

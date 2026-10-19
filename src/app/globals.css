@@ -229,3 +229,362 @@ body {
     transform: none;
   }
 }
+
+/* ============================================================
+   Authenticated CRM — precision light theme
+   Calm, automotive and deliberately restrained. The public/auth
+   experience can retain the cinematic tokens above; this scope applies
+   only to the operational product shell.
+   ============================================================ */
+.crm-shell {
+  color-scheme: light;
+  --ink-900: #d9dbd7;
+  --ink-800: #f1f2ee;
+  --ink-700: #d0d2cc;
+  --panel: #f8f9f6;
+  --panel-2: #e8eae4;
+  --line: rgba(24, 24, 23, 0.2);
+  --line-strong: rgba(24, 24, 23, 0.34);
+  --section-ink: #363737;
+  --section-text: #f8f9f6;
+  --section-muted: #d7dcd6;
+  --text: #191918;
+  --text-muted: #646461;
+  --text-faint: #8a8a86;
+  --accent: #1c1c1e;
+  --accent-2: #4b4b49;
+  --accent-3: #6b6b67;
+  --glow: rgba(24, 24, 23, 0.14);
+  --background: #d9dbd7;
+  --foreground: #191918;
+
+  /* Re-map Tailwind's semantic slate/white overlays inside the app. This
+     lets legacy screens inherit the light system without one-off rewrites. */
+  --color-white: #ffffff;
+  --color-black: #181817;
+  --color-slate-50: #111110;
+  --color-slate-100: #1b1b1a;
+  --color-slate-200: #292928;
+  --color-slate-300: #41413f;
+  --color-slate-400: #5f5f5c;
+  --color-slate-500: #62655f;
+  --color-slate-600: #92928d;
+  --color-slate-700: #d0d0cb;
+  --color-slate-800: #deded9;
+  --color-slate-900: #e9e9e5;
+  --color-slate-950: #f4f4f1;
+  --color-sky-100: #292928;
+  --color-sky-200: #343432;
+  --color-sky-300: #3c3c3a;
+  --color-sky-400: #30302e;
+  --color-sky-500: #242423;
+  --color-sky-600: #171716;
+  --color-blue-100: #183d62;
+  --color-blue-200: #174a78;
+  --color-blue-300: #16558c;
+  --color-blue-400: #1462a2;
+  --color-blue-500: #126bb2;
+  --color-violet-300: #6b6b67;
+  --color-violet-400: #555552;
+  --color-violet-500: #3a3a38;
+  --color-cyan-100: #315252;
+  --color-cyan-200: #315e5e;
+  --color-cyan-300: #2d6969;
+  --color-cyan-400: #287575;
+  --color-emerald-100: #164c36;
+  --color-emerald-200: #14583d;
+  --color-emerald-300: #126543;
+  --color-emerald-400: #0f744b;
+  --color-emerald-500: #0d8052;
+  --color-amber-100: #684000;
+  --color-amber-200: #754800;
+  --color-amber-300: #815000;
+  --color-amber-400: #946000;
+  --color-amber-500: #a96f00;
+  --color-yellow-200: #684800;
+  --color-yellow-300: #795500;
+  --color-yellow-400: #8b6300;
+  --color-rose-100: #7b2630;
+  --color-rose-200: #8f2733;
+  --color-rose-300: #a32936;
+  --color-rose-400: #b52b3b;
+
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e2e4df 0, #d9dbd7 36rem);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.crm-shell .studio-surface {
+  border-radius: 6px;
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 3px rgba(24, 24, 23, 0.06),
+    0 14px 30px -24px rgba(24, 24, 23, 0.34);
+}
+
+.crm-shell .studio-interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  box-shadow: 0 12px 30px -22px rgba(24, 24, 23, 0.35);
+}
+
+.crm-shell .studio-edge::before {
+  background: #1c1c1e;
+  opacity: 0;
+}
+
+.crm-shell .text-gradient {
+  background: none;
+  color: #181817;
+  -webkit-text-fill-color: currentColor;
+}
+
+.crm-shell .studio-tile {
+  border-radius: 5px;
+  background: #f0f0ed;
+  border-color: rgba(24, 24, 23, 0.09);
+  color: #1c1c1e;
+  box-shadow: none;
+}
+
+.crm-shell .studio-input {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(24, 24, 23, 0.28);
+  color: #191918;
+  box-shadow: 0 1px 1px rgba(24, 24, 23, 0.025);
+}
+.crm-shell .trade-in-wizard .text-white { color: #191918; }
+.crm-shell .trade-in-wizard button.text-white { color: #fff; background: #313630; border-color: #313630; }
+.crm-shell .trade-in-wizard button.text-white:hover { background: #20241f; }
+.crm-shell .studio-input::placeholder { color: #92928d; }
+.crm-shell .studio-input:hover { border-color: rgba(24, 24, 23, 0.23); }
+.crm-shell .studio-input:focus {
+  border-color: #333331;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(24, 24, 23, 0.09);
+}
+
+.crm-shell .deal-stepper .deal-step {
+  background: #eceeeb;
+  border: 1px solid #b8bdb6;
+  color: #373d35;
+}
+.crm-shell .deal-stepper .deal-step[aria-current="step"] {
+  background: #252a25;
+  border-color: #252a25;
+  color: #fff;
+}
+.crm-shell .deal-stepper .deal-step-number {
+  background: #d9ddd6;
+  color: #252a25;
+}
+.crm-shell .deal-stepper .deal-step[aria-current="step"] .deal-step-number {
+  background: #fff;
+  color: #252a25;
+}
+.crm-shell .deal-stepper .deal-step:focus-visible {
+  outline: 2px solid #17604f;
+  outline-offset: 3px;
+}
+.crm-shell .deal-finish-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #135446;
+  border-radius: 4px;
+  background: #17604f;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+.crm-shell .deal-finish-button:hover:not(:disabled) { background: #10483b; }
+.crm-shell .btn-gradient {
+  border-radius: 4px;
+  border-color: #171716;
+  background: linear-gradient(180deg, #2a2a29, #151514);
+  color: #fff;
+  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.65), inset 0 1px rgba(255, 255, 255, 0.13);
+}
+.crm-shell .btn-gradient:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+.crm-shell .btn-outline {
+  border-radius: 4px;
+  border-color: rgba(24, 24, 23, 0.13);
+  background: rgba(255, 255, 255, 0.7);
+  color: #292928;
+}
+.crm-shell .btn-outline:hover:not(:disabled) { background: #fff; border-color: rgba(24, 24, 23, 0.24); }
+
+/* Bring legacy hard-coded studio panels into the same light CRM language. */
+.crm-shell [class*="bg-[#0b0f17]"],
+.crm-shell [class*="bg-[#090d16]"] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  background-image: none !important;
+}
+.crm-shell [class*="border-white/"] { border-color: rgba(24, 24, 23, 0.17) !important; }
+.crm-shell [class*="bg-white/"] { background-color: rgba(24, 24, 23, 0.04) !important; }
+.crm-shell [class*="hover:text-white"]:hover { color: #181817 !important; }
+.crm-shell [class*="rounded-3xl"] { border-radius: 8px !important; }
+.crm-shell [class*="rounded-2xl"] { border-radius: 6px !important; }
+.crm-shell [class*="rounded-xl"] { border-radius: 5px !important; }
+.crm-shell [class*="rounded-lg"] { border-radius: 4px !important; }
+.crm-shell [class*="rounded-md"] { border-radius: 3px !important; }
+.crm-shell [class*="bg-gradient"][class*="from-sky-"] {
+  background-color: #1c1c1e !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: rgba(0, 0, 0, 0.75) !important;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.7) !important;
+}
+
+.entity-reference {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgb(15 23 42 / 0.16);
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.82);
+  padding: 0.28rem 0.48rem;
+  color: #111827;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+.entity-reference:hover { border-color: #1c1c1e; background: #1c1c1e; color: white; transform: translateY(-1px); }
+.entity-reference__kind { color: #64748b; font-family: var(--font-geist-sans), ui-sans-serif, sans-serif; font-size: 0.56rem; font-weight: 750; letter-spacing: 0.12em; }
+.entity-reference:hover .entity-reference__kind { color: #cbd5e1; }
+.entity-reference__number { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entity-reference__arrow { color: #94a3b8; font-size: 0.65rem; }
+@media (prefers-reduced-motion: reduce) {
+  .entity-reference { transition: none; }
+  .entity-reference:hover { transform: none; }
+}
+
+.crm-shell * {
+  scrollbar-color: rgba(24, 24, 23, 0.22) transparent;
+}
+.crm-shell *::-webkit-scrollbar-thumb { background: rgba(24, 24, 23, 0.18); background-clip: content-box; }
+.crm-shell *::-webkit-scrollbar-thumb:hover { background: rgba(24, 24, 23, 0.3); background-clip: content-box; }
+
+/* Operational hierarchy: graphite section titles, pale work surfaces, white
+   inputs. Shared by all app routes; printed vehicle documents retain their layout. */
+@media screen {
+  .crm-shell main:not(:has(.vehicle-print)) h2 {
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #303131;
+    border-left: 3px solid #171818;
+    border-radius: 3px;
+    background: var(--section-ink);
+    color: var(--section-text);
+    -webkit-text-fill-color: currentColor;
+    font-weight: 650;
+    line-height: 1.4;
+    letter-spacing: 0.015em;
+    text-wrap: balance;
+  }
+
+  /* Full header rows also contain context, record links or actions. */
+  .crm-shell main:not(:has(.vehicle-print)) .crm-section-header {
+    padding: 0.9rem 1rem;
+    border: 1px solid #303131;
+    border-left: 3px solid #171818;
+    border-radius: 3px;
+    background: var(--section-ink);
+    color: var(--section-text);
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .crm-section-header :is(h2, h3) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--section-text);
+  }
+  .crm-shell .crm-section-header p { color: var(--section-muted); }
+  .crm-shell .crm-section-header .crm-step-number {
+    color: #fff;
+    border-right: 1px solid #7e877f;
+    padding-right: 0.75rem;
+  }
+  .crm-shell .crm-section-header :is(.btn-outline, .entity-reference) {
+    background: #f0f2ed;
+    border-color: #c9cec6;
+    color: #20251f;
+  }
+  .crm-shell .crm-section-header .entity-reference:hover {
+    background: #fff;
+    color: #151a14;
+  }
+  .crm-shell .crm-section-header .entity-reference:hover .entity-reference__kind { color: #515a51; }
+
+  .crm-shell main:not(:has(.vehicle-print)) :is(section, fieldset) > :is(h3, legend) {
+    padding: 0.45rem 0.7rem;
+    border-left: 3px solid #777f74;
+    background: #e0e1dd;
+    color: #30322e;
+    font-weight: 650;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) :is(.text-slate-600, .text-slate-700) {
+    color: #50574c;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface thead {
+    background: #dddfda;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface thead :is(th, td) {
+    color: #32352f;
+    border-bottom: 1px solid #aeb2a8;
+    font-weight: 700;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface tbody tr:nth-child(even):not([class*="bg-"]) {
+    background: #eeefeb;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface tbody tr:not([class*="bg-"]):hover {
+    background: #e3e5df;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) dl[class*="bg-"] {
+    background-color: #eceee8;
+    border-color: #c8ccc2;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface dl > div {
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid #d0d3ca;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) .studio-surface tbody tr + tr {
+    border-top: 1px solid #d0d3ca;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) fieldset + fieldset {
+    padding-top: 1rem;
+    border-top: 1px solid #bec3b8;
+  }
+  .crm-shell main:not(:has(.vehicle-print)) hr {
+    border: 0;
+    border-top: 1px solid #bec3b8;
+  }
+}
+
+@media print {
+  .crm-shell:has(.quote-print) { display: block !important; min-height: 0; background: white !important; }
+  .crm-shell:has(.quote-print) > aside,
+  .crm-shell:has(.quote-print) > div.sticky,
+  .crm-shell:has(.quote-print) .quote-print-toolbar,
+  .crm-shell:has(.quote-print) main > div > div:first-child:not(.quote-print) { display: none !important; }
+  .crm-shell:has(.quote-print) main { padding: 0 !important; }
+  .crm-shell:has(.quote-print) main > div { max-width: none !important; animation: none !important; }
+  .quote-print { max-width: none !important; margin: 0 !important; }
+  .quote-print-sheet { padding: 14mm !important; box-shadow: none !important; }
+  .crm-shell:has(.vehicle-print) { display: block !important; min-height: 0; background: white !important; }
+  .crm-shell:has(.vehicle-print) > aside,
+  .crm-shell:has(.vehicle-print) > div.sticky,
+  .vehicle-print-toolbar { display: none !important; }
+  .crm-shell:has(.vehicle-print) main { padding: 0 !important; }
+  .crm-shell:has(.vehicle-print) main > div { max-width: none !important; animation: none !important; }
+  .vehicle-print { max-width: none !important; padding: 0 !important; }
+  .vehicle-print-sheet { break-inside: avoid; border: 0 !important; }
+}

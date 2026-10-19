@@ -1,0 +1,21 @@
+"use client";
+
+import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { closeAccountingPeriod, createAccountingPeriod, reopenAccountingPeriod, setInvoiceDatePolicy } from "./actions";
+
+interface Period { id: string; label: string; start: string; end: string; status: "open" | "closed"; closedAt?: string | null }
+interface OperationResult { error?: string; id?: string; status?: string }
+
+export function PeriodControls({ periods, demo, maxBackdateDays }: { periods: Period[]; demo: boolean; maxBackdateDays: number }) {
+  const router = useRouter(); const [error,setError]=useState(""); const [pending,start]=useTransition();
+  function perform(job:()=>Promise<OperationResult>) { setError("");start(async()=>{const result=await job();if(result.error)setError(result.error);else router.refresh();}); }
+  function create(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=new FormData(event.currentTarget);perform(()=>createAccountingPeriod({label:String(form.get("label")),periodStart:String(form.get("periodStart")),periodEnd:String(form.get("periodEnd")),requestId:crypto.randomUUID()}));}
+  return <section className="studio-surface p-4">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-200">Accounting periods</h2><p className="mt-1 text-xs text-slate-500">Closing freezes source transactions inside the period. Owner-only reopening requires an audited reason.</p></div></div>
+    {error&&<p role="alert" className="mt-3 text-xs text-rose-300">{error}</p>}
+    <form onSubmit={event=>{event.preventDefault();const days=Number(new FormData(event.currentTarget).get("days"));perform(()=>setInvoiceDatePolicy({maxBackdateDays:days,requestId:crypto.randomUUID()}));}} className="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-white/[0.06] bg-black/10 p-3"><label className="text-xs text-slate-400">Maximum invoice backdate<input name="days" type="number" min="0" max="365" defaultValue={maxBackdateDays} required className="studio-input mt-1 w-36"/></label><span className="pb-2 text-xs text-slate-500">days · 0 allows today only</span><button disabled={demo||pending} className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-3 py-2.5 text-xs text-sky-200 disabled:opacity-40">Save policy</button></form>
+    <form onSubmit={create} className="mt-4 grid gap-2 sm:grid-cols-[1fr_150px_150px_auto]"><input name="label" required minLength={2} maxLength={80} placeholder="September 2026" className="studio-input"/><input name="periodStart" type="date" required className="studio-input"/><input name="periodEnd" type="date" required className="studio-input"/><button disabled={demo||pending} className="btn-gradient justify-center disabled:opacity-40">Create period</button></form>
+    <div className="mt-4 divide-y divide-white/5">{periods.length===0?<p className="py-3 text-sm text-slate-500">No accounting periods created.</p>:periods.map(period=><div key={period.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"><div><p className="text-sm font-medium text-slate-200">{period.label}</p><p className="text-xs text-slate-500">{period.start} → {period.end}</p></div><span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider ${period.status==='closed'?'border-emerald-300/20 bg-emerald-300/10 text-emerald-200':'border-amber-300/20 bg-amber-300/10 text-amber-200'}`}>{period.status}</span>{period.status==='open'?<button disabled={demo||pending} onClick={()=>perform(()=>closeAccountingPeriod({id:period.id,requestId:crypto.randomUUID()}))} className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs text-emerald-200 disabled:opacity-40">Close</button>:<form onSubmit={(event)=>{event.preventDefault();const reason=String(new FormData(event.currentTarget).get("reason"));perform(()=>reopenAccountingPeriod({id:period.id,reason,requestId:crypto.randomUUID()}));}} className="flex gap-1"><input name="reason" required minLength={5} placeholder="Reopen reason" className="w-40 rounded-md border border-white/10 bg-black/20 px-2 text-xs"/><button disabled={demo||pending} className="rounded-lg border border-amber-300/20 px-3 py-2 text-xs text-amber-200 disabled:opacity-40">Reopen</button></form>}</div>)}</div>
+  </section>;
+}

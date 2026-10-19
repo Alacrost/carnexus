@@ -49,6 +49,7 @@ export async function loadSite(slug: string): Promise<SiteData | null> {
     .select("id, make, model, year, km, sale_price, registration, fuel, transmission, status")
     .eq("dealer_id", dealer.id)
     .eq("stock_class", "main")
+    .eq("website_visible", true)
     .in("status", ["ready_for_sale", "reserved"])
     .order("created_at", { ascending: false });
   const cars = (vehicles ?? []).map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year, km: v.km, price: v.sale_price, registration: v.registration, fuel: v.fuel, transmission: v.transmission, status: v.status }));
